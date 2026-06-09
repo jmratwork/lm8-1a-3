@@ -28,73 +28,6 @@
 
 name: ngsoc-lm8-subcase1a
 
-# ─── NETWORKS ────────────────────────────────────────────────────────────────
-#
-#  10.10.10.0/24  net-transit   Router backbone (not user-visible)
-#  10.10.20.0/24  net-dmz       DMZ: banking web app + hidden C2
-#  10.10.30.0/24  net-corp      Corporate LAN: employee WS + data servers
-#  10.10.40.0/24  net-security  Security tools: SIEM + forensics + MISP
-#  10.10.50.0/24  net-redteam   Red-team: Kali workstation
-#
-networks:
-  # Transit backbone – interconnects the two routers only; never exposed to
-  # trainees (no user-accessible nodes live here)
-  - name: net-transit
-    cidr: 10.10.10.0/24
-    accessible_by_user: false
-
-  # DMZ – simulated internet-facing segment; hosts the vulnerable banking web
-  # application (Exercise 4) and the hidden C2 server (Exercises 1 & 3).
-  # Trainees can reach this segment from kali (red-team) and analyst-host.
-  - name: net-dmz
-    cidr: 10.10.20.0/24
-    accessible_by_user: true
-
-  # Corporate LAN – internal workstations and data servers; NOT directly
-  # accessible via user VPN. Trainees interact with these hosts only through
-  # the SIEM and analyst-host tooling, which mirrors a real SOC workflow.
-  - name: net-corp
-    cidr: 10.10.30.0/24
-    accessible_by_user: false
-
-  # Security-tools segment – SIEM, forensics workstation, MISP CTI platform.
-  # This is the primary analyst workspace; trainees SSH/console here for all
-  # blue-team exercises (Exercises 1, 2, 3).
-  - name: net-security
-    cidr: 10.10.40.0/24
-    accessible_by_user: true
-
-  # Red-team segment – isolated Kali host for Exercise 4 (pen test) and the
-  # spear-phishing artefact delivery (Activity 2.0.1). Separate segment
-  # prevents accidental lateral movement into security-tools during the exercise.
-  - name: net-redteam
-    cidr: 10.10.50.0/24
-    accessible_by_user: true
-
-# ─── ROUTERS ─────────────────────────────────────────────────────────────────
-routers:
-  # Perimeter router: gateway between transit backbone and DMZ.
-  # Provisioning configures iptables to simulate an internet-edge firewall:
-  # - Allows inbound HTTP/HTTPS to web-banking (10.10.20.10)
-  # - Blocks all other unsolicited inbound connections
-  # - NATs outbound traffic from internal segments (for simulated internet reach)
-  - name: router-perimeter
-    flavor: standard.small
-    base_box:
-      image: debian-12-x86_64
-      mgmt_user: debian
-
-  # Internal router: connects all internal segments via the transit backbone.
-  # Provisioning configures inter-segment routing:
-  # - net-corp ↔ net-security (allows analyst-host to reach corp hosts for forensics)
-  # - net-redteam → net-dmz (allows kali to reach web-banking for pen test)
-  # - Blocks net-redteam → net-corp and net-redteam → net-security (scope control)
-  - name: router-internal
-    flavor: standard.small
-    base_box:
-      image: debian-12-x86_64
-      mgmt_user: debian
-
 # ─── HOSTS ───────────────────────────────────────────────────────────────────
 hosts:
 
@@ -240,6 +173,73 @@ hosts:
       image: kali-2020.4
       mgmt_user: kali
 
+# ─── ROUTERS ─────────────────────────────────────────────────────────────────
+routers:
+  # Perimeter router: gateway between transit backbone and DMZ.
+  # Provisioning configures iptables to simulate an internet-edge firewall:
+  # - Allows inbound HTTP/HTTPS to web-banking (10.10.20.10)
+  # - Blocks all other unsolicited inbound connections
+  # - NATs outbound traffic from internal segments (for simulated internet reach)
+  - name: router-perimeter
+    flavor: standard.small
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+
+  # Internal router: connects all internal segments via the transit backbone.
+  # Provisioning configures inter-segment routing:
+  # - net-corp ↔ net-security (allows analyst-host to reach corp hosts for forensics)
+  # - net-redteam → net-dmz (allows kali to reach web-banking for pen test)
+  # - Blocks net-redteam → net-corp and net-redteam → net-security (scope control)
+  - name: router-internal
+    flavor: standard.small
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+
+# ─── NETWORKS ────────────────────────────────────────────────────────────────
+#
+#  10.10.10.0/24  net-transit   Router backbone (not user-visible)
+#  10.10.20.0/24  net-dmz       DMZ: banking web app + hidden C2
+#  10.10.30.0/24  net-corp      Corporate LAN: employee WS + data servers
+#  10.10.40.0/24  net-security  Security tools: SIEM + forensics + MISP
+#  10.10.50.0/24  net-redteam   Red-team: Kali workstation
+#
+networks:
+  # Transit backbone – interconnects the two routers only; never exposed to
+  # trainees (no user-accessible nodes live here)
+  - name: net-transit
+    cidr: 10.10.10.0/24
+    accessible_by_user: false
+
+  # DMZ – simulated internet-facing segment; hosts the vulnerable banking web
+  # application (Exercise 4) and the hidden C2 server (Exercises 1 & 3).
+  # Trainees can reach this segment from kali (red-team) and analyst-host.
+  - name: net-dmz
+    cidr: 10.10.20.0/24
+    accessible_by_user: true
+
+  # Corporate LAN – internal workstations and data servers; NOT directly
+  # accessible via user VPN. Trainees interact with these hosts only through
+  # the SIEM and analyst-host tooling, which mirrors a real SOC workflow.
+  - name: net-corp
+    cidr: 10.10.30.0/24
+    accessible_by_user: false
+
+  # Security-tools segment – SIEM, forensics workstation, MISP CTI platform.
+  # This is the primary analyst workspace; trainees SSH/console here for all
+  # blue-team exercises (Exercises 1, 2, 3).
+  - name: net-security
+    cidr: 10.10.40.0/24
+    accessible_by_user: true
+
+  # Red-team segment – isolated Kali host for Exercise 4 (pen test) and the
+  # spear-phishing artefact delivery (Activity 2.0.1). Separate segment
+  # prevents accidental lateral movement into security-tools during the exercise.
+  - name: net-redteam
+    cidr: 10.10.50.0/24
+    accessible_by_user: true
+
 # ─── NET MAPPINGS ─────────────────────────────────────────────────────────────
 # Rules: IP must be within the network CIDR; .1 is router gateway (reserved);
 # .255 is broadcast (reserved). Host IPs start at .10 for readability.
@@ -352,17 +352,40 @@ groups:
       - router-internal
 
 # ─── MONITORING TARGETS ───────────────────────────────────────────────────────
-# Uncomment to enable platform-level ICMP reachability monitoring.
+# Uncomment to enable platform-level reachability monitoring.
 # The platform auto-populates the "monitor-icmp" Ansible group from this list.
+# Each node entry declares which port/interface the platform should probe.
 #
 # monitoring_targets:
-#   - type: monitor-icmp
-#     hosts:
-#       - web-banking
-#       - employee-ws
-#       - file-server
-#       - db-server
-#       - siem
-#       - analyst-host
-#       - cti
-#       - kali
+#   - node: web-banking
+#     targets:
+#       - port: 80
+#         interface: eth0
+#   - node: employee-ws
+#     targets:
+#       - port: 22
+#         interface: eth0
+#   - node: file-server
+#     targets:
+#       - port: 22
+#         interface: eth0
+#   - node: db-server
+#     targets:
+#       - port: 22
+#         interface: eth0
+#   - node: siem
+#     targets:
+#       - port: 5601
+#         interface: eth0
+#   - node: analyst-host
+#     targets:
+#       - port: 22
+#         interface: eth0
+#   - node: cti
+#     targets:
+#       - port: 443
+#         interface: eth0
+#   - node: kali
+#     targets:
+#       - port: 22
+#         interface: eth0
