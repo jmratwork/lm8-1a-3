@@ -170,7 +170,7 @@ hosts:
   - name: kali
     flavor: standard.large
     base_box:
-      image: kali-2020.4
+      image: kali
       mgmt_user: kali
 
 # ─── ROUTERS ─────────────────────────────────────────────────────────────────
