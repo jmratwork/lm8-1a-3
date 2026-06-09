@@ -1,4 +1,4 @@
-# NG-SOC LM8 Sub Case 1a – KYPO Sandbox Definition
+# NG-SOC LM8 Sub Case 1a-3 – Incident Response and Forensics
 **Learning Module 8: Incident Response and Forensics**
 CyberRangeCZ / KYPO Platform | NG-SOC WP5 Training Scenario
 
