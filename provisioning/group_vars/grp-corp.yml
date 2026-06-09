@@ -1,0 +1,20 @@
+---
+# Variables for the corporate LAN segment (grp-corp)
+
+# Wazuh agent registration (all corp hosts enrol to the SIEM)
+wazuh_manager_ip: "10.10.40.10"
+wazuh_agent_group: "corp-hosts"
+
+# Velociraptor agent enrolls to analyst-host
+velociraptor_server_ip: "10.10.40.20"
+velociraptor_server_port: 8000
+
+# Database server connection details (used by web-banking-vuln role)
+db_host: "10.10.30.30"
+db_port: 3306
+db_name: "bankdb"
+db_user: "bankapp"
+db_password: "B4nkAppP@ss2025!"
+
+# File server share path
+file_server_share: "/srv/data"

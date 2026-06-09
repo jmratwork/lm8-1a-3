@@ -1,0 +1,127 @@
+---
+# Role: router-config
+# Configures IP forwarding and iptables rules on both routers.
+# router-perimeter: simulated perimeter firewall (DMZ gateway)
+# router-internal: inter-segment routing with access controls
+
+- name: Enable IPv4 forwarding (sysctl)
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: true
+
+- name: Install iptables-persistent
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - iptables-persistent
+      - netfilter-persistent
+    state: present
+  when: ansible_os_family == "Debian"
+
+# ── router-perimeter specific rules ─────────────────────────────────────────
+- name: Perimeter – allow ESTABLISHED/RELATED return traffic
+  ansible.builtin.iptables:
+    chain: FORWARD
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+  when: inventory_hostname == "router-perimeter"
+
+- name: Perimeter – allow inbound HTTP to web-banking
+  ansible.builtin.iptables:
+    chain: FORWARD
+    destination: "10.10.20.10"
+    protocol: tcp
+    destination_port: "80"
+    jump: ACCEPT
+  when: inventory_hostname == "router-perimeter"
+
+- name: Perimeter – allow inbound HTTPS to web-banking
+  ansible.builtin.iptables:
+    chain: FORWARD
+    destination: "10.10.20.10"
+    protocol: tcp
+    destination_port: "443"
+    jump: ACCEPT
+  when: inventory_hostname == "router-perimeter"
+
+- name: Perimeter – allow C2 listener port (exercise artefact – restricted to internal)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    destination: "10.10.20.20"
+    protocol: tcp
+    destination_port: "4444"
+    source: "10.10.30.0/24"
+    jump: ACCEPT
+  when: inventory_hostname == "router-perimeter"
+
+- name: Perimeter – add static route back to internal networks via router-internal
+  ansible.builtin.command:
+    cmd: "ip route replace {{ item }} via 10.10.10.2"
+  loop:
+    - "10.10.30.0/24"
+    - "10.10.40.0/24"
+    - "10.10.50.0/24"
+  changed_when: true
+  when: inventory_hostname == "router-perimeter"
+
+# ── router-internal specific rules ───────────────────────────────────────────
+- name: Internal – allow ESTABLISHED/RELATED
+  ansible.builtin.iptables:
+    chain: FORWARD
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+  when: inventory_hostname == "router-internal"
+
+- name: Internal – allow security-tools → corp (forensics access)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    source: "10.10.40.0/24"
+    destination: "10.10.30.0/24"
+    jump: ACCEPT
+  when: inventory_hostname == "router-internal"
+
+- name: Internal – allow corp → security-tools (Wazuh agent comms)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    source: "10.10.30.0/24"
+    destination: "10.10.40.0/24"
+    jump: ACCEPT
+  when: inventory_hostname == "router-internal"
+
+- name: Internal – allow redteam → DMZ (pen-test scope only)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    source: "10.10.50.0/24"
+    destination: "10.10.20.0/24"
+    jump: ACCEPT
+  when: inventory_hostname == "router-internal"
+
+- name: Internal – BLOCK redteam → corp (out of pen-test scope)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    source: "10.10.50.0/24"
+    destination: "10.10.30.0/24"
+    jump: DROP
+  when: inventory_hostname == "router-internal"
+
+- name: Internal – BLOCK redteam → security-tools (scope control)
+  ansible.builtin.iptables:
+    chain: FORWARD
+    source: "10.10.50.0/24"
+    destination: "10.10.40.0/24"
+    jump: DROP
+  when: inventory_hostname == "router-internal"
+
+- name: Internal – add static route to DMZ via perimeter router
+  ansible.builtin.command:
+    cmd: "ip route replace 10.10.20.0/24 via 10.10.10.1"
+  changed_when: true
+  when: inventory_hostname == "router-internal"
+
+- name: Save iptables rules (persist across reboots)
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
+  when: ansible_os_family == "Debian"

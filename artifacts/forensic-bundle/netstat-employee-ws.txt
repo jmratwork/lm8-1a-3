@@ -1,0 +1,34 @@
+================================================================================
+SYNTHETIC TRAINING ARTEFACT – Network connection snapshot from employee-ws
+Captured: 2026-06-08T02:14:10.000Z
+Command: ss -tunap (all TCP/UDP connections + PID/program)
+Host: employee-ws (10.10.30.10)
+================================================================================
+
+Netid  State       Recv-Q  Send-Q  Local Address:Port       Peer Address:Port   Process
+tcp    ESTABLISHED 0       0       10.10.30.10:49231        10.10.20.20:4444    users:(("nc",pid=712,fd=3))
+tcp    TIME-WAIT   0       0       10.10.30.10:49229        10.10.20.20:4444
+tcp    TIME-WAIT   0       0       10.10.30.10:49230        10.10.20.20:4444
+tcp    ESTABLISHED 0       0       10.10.30.10:58812        10.10.30.20:445     users:(("bash",pid=711,fd=4))
+tcp    LISTEN      0       128     0.0.0.0:22               0.0.0.0:*           users:(("sshd",pid=314,fd=3))
+tcp    ESTABLISHED 0       0       10.10.30.10:22           10.10.40.20:58341   users:(("sshd",pid=400,fd=3))
+tcp    LISTEN      0       128     127.0.0.1:5985           0.0.0.0:*
+udp    UNCONN      0       0       0.0.0.0:68               0.0.0.0:*           users:(("dhclient",pid=203,fd=6))
+
+DNS QUERY LOG (from /var/log/syslog excerpt):
+  02:14:08 employee-ws dnsmasq[180]: query[A] update-svc.blackfalcon-sim.internal from 127.0.0.1
+  02:14:08 employee-ws dnsmasq[180]: forwarded update-svc.blackfalcon-sim.internal to 10.10.10.1
+  02:14:09 employee-ws dnsmasq[180]: reply update-svc.blackfalcon-sim.internal is 10.10.20.20
+
+ARP CACHE (relevant entries):
+  10.10.30.1     ether  52:54:00:aa:01:01   C   eth0   (router-internal)
+  10.10.30.20    ether  52:54:00:aa:03:02   C   eth0   (file-server – ACTIVE SMB connection)
+  10.10.30.30    ether  52:54:00:aa:03:03   C   eth0   (db-server)
+  10.10.20.20    ether  52:54:00:aa:02:02   C   eth0   (c2-server – via routing)
+
+ANALYSIS NOTES:
+  - Active C2 connection: employee-ws → 10.10.20.20:4444 (ESTABLISHED, nc process)
+  - 3 recent connections to 10.10.20.20:4444 (2 TIME-WAIT suggest prior beacon cycles)
+  - Active SMB connection to file-server (10.10.30.20:445) — lateral movement
+  - DNS resolution confirmed: blackfalcon-sim.internal domain resolves to C2 IP
+  - ARP shows db-server also in ARP cache (prior traffic or ARP scan)

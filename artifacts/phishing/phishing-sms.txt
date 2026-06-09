@@ -1,0 +1,33 @@
+================================================================================
+SYNTHETIC TRAINING ARTEFACT – NG-SOC LM8 Sub Case 1a
+Simulated SMS phishing message (smishing) – Activity 2.0.1
+ALL DETAILS ARE FICTITIOUS – DOES NOT ORIGINATE FROM A REAL NUMBER
+================================================================================
+
+--- SIMULATED SMS MESSAGE ---
+Sender: +447700900142
+Timestamp: 2026-06-08 09:31:07 UTC
+Recipient: [Employee mobile – SecureBank IT asset inventory ref: MOB-0047]
+
+Message text:
+"SECUREBANK ALERT: Unusual sign-in detected on your account from a new device
+(IP 185.x.x.x). If this wasn't you, verify immediately:
+http://s.bf-sim.internal/v4x2
+
+Your account will be suspended in 2 hours if not verified.
+-SecureBank Security Team"
+
+--- END SIMULATED SMS ---
+
+OBSERVABLE ANALYSIS FOR EXERCISE:
+  Type: Smishing (SMS phishing)
+  Short URL: http://s.bf-sim.internal/v4x2  (resolves to 10.10.20.20 within sandbox)
+  Technique: Urgency + fear of account suspension
+  Social engineering theme: Security alert / credential harvest
+  MITRE ATT&CK: T1566 (Phishing), T1598 (Phishing for Information)
+  Target: Employee credentials for banking portal
+
+NOTE FOR INSTRUCTOR:
+  This SMS artefact is used in Activity 2.0.1 (Multi-Channel Spear-Phishing Simulation).
+  Instructor delivers as part of a printed/digital set alongside phishing-email.eml
+  and phishing-call-script.txt. Students triage all three to complete phishing-triage-note.md.

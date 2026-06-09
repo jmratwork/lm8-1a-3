@@ -1,0 +1,53 @@
+================================================================================
+SYNTHETIC TRAINING ARTEFACT – NG-SOC LM8 Sub Case 1a
+Simulated voice phishing (vishing) call transcript – Activity 2.0.1
+ALL DETAILS ARE FICTITIOUS – ROLE-PLAY SCRIPT ONLY
+================================================================================
+
+SCENARIO: Attacker calls employee's desk phone posing as IT Helpdesk.
+Date/Time of simulated call: 2026-06-08 10:05:00 UTC
+Caller (attacker): "IT Helpdesk, Michael Carter"
+Recipient (victim): Jane Phillips, Finance Department, SecureBank
+
+--- CALL TRANSCRIPT (RECONSTRUCTION FROM VOICEMAIL / WITNESS ACCOUNT) ---
+
+CALLER: "Good morning, this is Michael from the SecureBank IT Security team.
+I'm calling about an urgent issue affecting your workstation. Our monitoring
+has flagged your machine — employee-ws — as potentially compromised by an
+external intrusion attempt this morning."
+
+EMPLOYEE: "Oh — what do I need to do?"
+
+CALLER: "I need to run a quick remote verification check. Can you visit the
+following URL in your browser and enter your Windows login credentials so I
+can validate your account hasn't been taken over? The address is:
+h-t-t-p colon forward-slash forward-slash update-svc dot blackfalcon-sim dot
+internal forward-slash verify. It will ask for your username and password."
+
+EMPLOYEE: "Is this the normal IT portal?"
+
+CALLER: "Yes, it's our new verification portal, it went live this week. I can
+stay on the line while you do it. It's quite urgent — if we don't verify in the
+next 15 minutes your account may be locked as a precaution."
+
+[Employee reportedly provided credentials before ending the call and checking
+with a colleague, at which point she recognised it as suspicious and contacted
+the SOC.]
+
+--- END TRANSCRIPT ---
+
+OBSERVABLE ANALYSIS FOR EXERCISE:
+  Type: Vishing (voice phishing)
+  Pretext: IT Helpdesk impersonation
+  Technique: Authority + urgency + credential harvesting URL
+  URL delivered verbally: http://update-svc.blackfalcon-sim.internal/verify
+  Resolves to: 10.10.20.20 (C2 server, within sandbox only)
+  Credentials targeted: Windows AD credentials
+  MITRE ATT&CK: T1566 (Phishing), T1598.004 (Vishing)
+  Result: Employee provisionally provided credentials (scenario context)
+
+NOTES FOR INSTRUCTOR:
+  Students read this transcript and triage it alongside the email and SMS.
+  Key learning: multi-channel attacks are coordinated; the same C2 domain
+  appears across email, SMS and voice call — a strong corroborating IoC.
+  Students should add the phone number and verbal URL to their IoC list.

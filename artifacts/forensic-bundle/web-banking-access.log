@@ -1,0 +1,35 @@
+# SYNTHETIC TRAINING ARTEFACT – Apache access log from web-banking (10.10.20.10)
+# Log period: 2026-06-08 01:00:00 – 02:30:00 UTC
+# Format: Combined Log Format (CLF)
+# NG-SOC LM8 Sub Case 1a – Evidence for Exercise 2 / Activity 2.0.3
+
+10.10.30.10 - - [08/Jun/2026:01:58:12 +0000] "GET / HTTP/1.1" 200 4823 "-" "Mozilla/5.0 (X11; Linux x86_64)"
+10.10.30.10 - - [08/Jun/2026:01:58:14 +0000] "GET /login.php HTTP/1.1" 200 2147 "-" "Mozilla/5.0"
+10.10.30.10 - - [08/Jun/2026:01:58:22 +0000] "POST /login.php HTTP/1.1" 200 3412 "-" "Mozilla/5.0"
+10.10.30.10 - - [08/Jun/2026:01:58:23 +0000] "GET /dashboard.php HTTP/1.1" 200 18904 "-" "Mozilla/5.0"
+10.10.50.10 - - [08/Jun/2026:01:59:44 +0000] "GET /login.php HTTP/1.1" 200 2147 "-" "sqlmap/1.7.12#stable (https://sqlmap.org)"
+10.10.50.10 - - [08/Jun/2026:01:59:45 +0000] "POST /login.php HTTP/1.1" 200 3412 "-" "sqlmap/1.7.12#stable"
+10.10.50.10 - - [08/Jun/2026:01:59:46 +0000] "POST /login.php HTTP/1.1" 500 812 "-" "sqlmap/1.7.12#stable"
+10.10.50.10 - - [08/Jun/2026:02:00:01 +0000] "GET /login.php?username=%27+OR+%271%27%3D%271%27--&password=x HTTP/1.1" 302 0 "-" "Mozilla/5.0"
+10.10.50.10 - - [08/Jun/2026:02:00:02 +0000] "GET /dashboard.php HTTP/1.1" 200 18904 "-" "Mozilla/5.0"
+10.10.50.10 - - [08/Jun/2026:02:00:14 +0000] "GET /db.php HTTP/1.1" 200 421 "-" "Mozilla/5.0"
+10.10.50.10 - - [08/Jun/2026:02:00:31 +0000] "GET /backup/ HTTP/1.1" 200 1204 "-" "gobuster/3.6"
+10.10.50.10 - - [08/Jun/2026:02:00:32 +0000] "GET /backup/db_backup_20260607.sql HTTP/1.1" 200 87440 "-" "gobuster/3.6"
+10.10.30.10 - - [08/Jun/2026:02:13:01 +0000] "POST /login.php HTTP/1.1" 500 824 "-" "curl/7.88.1"
+10.10.30.10 - - [08/Jun/2026:02:13:44 +0000] "GET /login.php HTTP/1.1" 200 2147 "-" "curl/7.88.1"
+10.10.30.10 - admin [08/Jun/2026:02:13:55 +0000] "POST /login.php HTTP/1.1" 302 0 "-" "curl/7.88.1"
+10.10.30.10 - admin [08/Jun/2026:02:14:01 +0000] "GET /dashboard.php HTTP/1.1" 200 18904 "-" "curl/7.88.1"
+10.10.30.10 - admin [08/Jun/2026:02:14:12 +0000] "GET /dashboard.php?export=csv HTTP/1.1" 200 48221 "-" "curl/7.88.1"
+
+# Error log entries (Apache error.log excerpt):
+# [Mon Jun 08 01:59:46 2026] [error] PHP Warning:  mysqli_fetch_assoc() expects parameter 1 to be mysqli_result, bool given in /var/www/html/login.php on line 24
+# [Mon Jun 08 01:59:46 2026] [error] PHP Notice: Query: SELECT * FROM admin_users WHERE username = ''' AND password = 'x'
+# [Mon Jun 08 02:00:01 2026] [error] PHP Warning: undefined variable $result in /var/www/html/login.php on line 19
+
+# ANALYSIS NOTES:
+#  - 10.10.50.10 (kali): sqlmap scan + SQLi bypass at 01:59–02:00 (Exercise 4 pen test)
+#  - 10.10.30.10 (employee-ws): curl-based access at 02:13–02:14 (automated beacon/malware)
+#  - /backup/db_backup_20260607.sql downloaded (87KB) – information disclosure
+#  - dashboard.php?export=csv (48KB) – customer data exfiltration via web
+#  - SQL error in error.log reveals query structure (root cause of SQLi)
+#  - MITRE: T1190 (SQLi exploit), T1005 (data collection), T1071.001 (C2 via HTTP)

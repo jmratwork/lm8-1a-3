@@ -1,0 +1,17 @@
+<VirtualHost *:80>
+    ServerName {{ banking_app_fqdn }}
+    ServerAlias {{ banking_app_ip }}
+    DocumentRoot {{ banking_app_dir }}
+
+    <Directory {{ banking_app_dir }}>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Access log for Exercise 4 – students will analyse this file
+    CustomLog /var/log/apache2/banking-access.log combined
+    ErrorLog  /var/log/apache2/banking-error.log
+
+    LogLevel warn
+</VirtualHost>

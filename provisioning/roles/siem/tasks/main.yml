@@ -1,0 +1,142 @@
+---
+# Role: siem
+# Deploys Wazuh (open-source) + OpenSearch + Wazuh Dashboard on the SIEM host.
+# Pre-loads custom detection rules for LM8 scenario events.
+# Exercises: 1 (SOC Triage), 2 (IR – lateral movement detection)
+# Requires standard.large (2 vCPU / 16 GB) for OpenSearch JVM heap.
+
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - apt-transport-https
+      - curl
+      - wget
+    state: present
+    update_cache: true
+
+- name: Add Wazuh GPG key
+  ansible.builtin.apt_key:
+    url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    state: present
+  ignore_errors: true
+
+- name: Add Wazuh repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://packages.wazuh.com/4.x/apt/ stable main"
+    state: present
+    filename: wazuh
+  ignore_errors: true
+
+- name: Install Wazuh manager
+  ansible.builtin.apt:
+    name: "wazuh-manager={{ wazuh_version }}.*"
+    state: present
+    update_cache: true
+  ignore_errors: true
+
+- name: Deploy LM8 custom Wazuh rules (Exercise 1 scenario rules)
+  ansible.builtin.copy:
+    dest: "{{ wazuh_custom_rules_dir }}/ngsoc_lm8_rules.xml"
+    content: |
+      <!-- NG-SOC LM8 Custom Wazuh Rules -->
+      <!-- Exercise 1: Suspicious Network Activity – SOC Analyst Triage -->
+      <group name="ngsoc_lm8,">
+
+        <!-- Rule 100001: Outbound connection to known C2 IP -->
+        <rule id="100001" level="13">
+          <if_sid>5104</if_sid>
+          <srcip>10.10.30.10</srcip>
+          <dstip>10.10.20.20</dstip>
+          <description>ALERT: Outbound connection to known Black Falcon C2 IP (10.10.20.20:4444) from employee-ws</description>
+          <mitre>
+            <id>T1071.001</id>
+          </mitre>
+        </rule>
+
+        <!-- Rule 100002: Possible Trojan infection syslog entry -->
+        <rule id="100002" level="12">
+          <if_sid>1002</if_sid>
+          <match>possible Trojan infection</match>
+          <description>ALERT: Endpoint agent reports possible Trojan infection on host</description>
+          <mitre>
+            <id>T1543</id>
+          </mitre>
+        </rule>
+
+        <!-- Rule 100003: Lateral movement – SMB access pattern -->
+        <rule id="100003" level="11">
+          <if_sid>18104</if_sid>
+          <match>lateral_move|smb_connect|psexec</match>
+          <description>ALERT: Possible lateral movement detected (SMB/PsExec pattern)</description>
+          <mitre>
+            <id>T1021.002</id>
+          </mitre>
+        </rule>
+
+        <!-- Rule 100004: File extension change (ransomware indicator) -->
+        <rule id="100004" level="15">
+          <if_sid>553</if_sid>
+          <match>\.locked</match>
+          <description>CRITICAL: File extension changed to .locked – possible ransomware activity</description>
+          <mitre>
+            <id>T1486</id>
+          </mitre>
+        </rule>
+
+        <!-- Rule 100005: C2 domain DNS query -->
+        <rule id="100005" level="10">
+          <if_sid>5710</if_sid>
+          <match>blackfalcon-sim</match>
+          <description>ALERT: DNS query to known Black Falcon C2 domain</description>
+          <mitre>
+            <id>T1071.004</id>
+          </mitre>
+        </rule>
+
+      </group>
+    mode: "0644"
+
+- name: Enable and start Wazuh manager
+  ansible.builtin.service:
+    name: wazuh-manager
+    state: started
+    enabled: true
+  ignore_errors: true
+
+# OpenSearch / Wazuh Dashboard installation
+# Using the Wazuh all-in-one installer for simplicity.
+# If internet is not available in the target cloud, use the offline installer
+# package placed in provisioning/roles/siem/files/wazuh-offline.tar.gz
+
+- name: Download Wazuh install script
+  ansible.builtin.get_url:
+    url: "https://packages.wazuh.com/4.7/wazuh-install.sh"
+    dest: /opt/wazuh-install.sh
+    mode: "0755"
+  ignore_errors: true
+
+- name: Run Wazuh all-in-one installer (indexer + dashboard + manager)
+  ansible.builtin.command:
+    cmd: "bash /opt/wazuh-install.sh -a -i"
+    creates: /etc/wazuh-dashboard/opensearch_dashboards.yml
+  environment:
+    JAVA_TOOL_OPTIONS: "-Xms{{ opensearch_heap_size }} -Xmx{{ opensearch_heap_size }}"
+  ignore_errors: true
+  async: 600
+  poll: 30
+
+- name: Deploy pre-seeded alert JSON for Exercise 1 scenario
+  ansible.builtin.copy:
+    dest: /opt/ngsoc-alerts/ex1-preseeded-alerts.json
+    content: |
+      {"timestamp":"2025-11-15T02:08:55Z","rule":{"id":"100001","level":13,"description":"ALERT: Outbound connection to known Black Falcon C2 IP"},"agent":{"name":"employee-ws","ip":"10.10.30.10"},"data":{"srcip":"10.10.30.10","dstip":"10.10.20.20","dstport":"4444","protocol":"tcp"}}
+      {"timestamp":"2025-11-15T02:09:00Z","rule":{"id":"100002","level":12,"description":"ALERT: Endpoint agent reports possible Trojan infection"},"agent":{"name":"employee-ws","ip":"10.10.30.10"},"data":{"process":"/tmp/.svc_update","message":"possible Trojan infection"}}
+      {"timestamp":"2025-11-15T02:09:05Z","rule":{"id":"100005","level":10,"description":"ALERT: DNS query to known Black Falcon C2 domain"},"agent":{"name":"employee-ws","ip":"10.10.30.10"},"data":{"dns_query":"update-svc.blackfalcon-sim.internal"}}
+    mode: "0644"
+
+- name: Create ngsoc-alerts directory
+  ansible.builtin.file:
+    path: /opt/ngsoc-alerts
+    state: directory
+    mode: "0755"

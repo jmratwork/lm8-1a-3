@@ -1,0 +1,14 @@
+---
+# Ansible Galaxy role dependencies for NG-SOC LM8 provisioning.
+# Install with: ansible-galaxy install -r requirements.yml
+# (Run this from the provisioning/ directory before deploying.)
+roles: []
+
+# No external Galaxy roles are required; all logic is implemented in-repo.
+# If you prefer a community MySQL role instead of the inline tasks, uncomment:
+#
+# roles:
+#   - name: geerlingguy.mysql
+#     version: "4.6.3"
+#   - name: geerlingguy.php
+#     version: "5.2.0"

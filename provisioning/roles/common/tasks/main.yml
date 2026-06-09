@@ -1,0 +1,60 @@
+---
+# Role: common
+# Applied to ALL nodes. Sets timezone, locale, installs base packages,
+# writes /etc/hosts with topology IPs, and creates the student analyst user.
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Set locale
+  ansible.builtin.command:
+    cmd: "localectl set-locale LANG={{ common_locale }}"
+  changed_when: false
+
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install common packages
+  ansible.builtin.package:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Write /etc/hosts with topology hostnames
+  ansible.builtin.template:
+    src: hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: "0644"
+  when: common_hostname_in_hosts | bool
+
+- name: Create student analyst user
+  ansible.builtin.user:
+    name: "{{ student_user }}"
+    password: "{{ student_password_hash }}"
+    shell: /bin/bash
+    groups: sudo
+    append: true
+    state: present
+
+- name: Allow analyst sudo without password (training environment)
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ student_user }}"
+    content: "{{ student_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+- name: Set MOTD with scenario banner
+  ansible.builtin.copy:
+    dest: /etc/motd
+    content: |
+      ============================================================
+        {{ scenario_name }}
+        CyberRangeCZ/KYPO  |  Sandbox: {{ global_sandbox_name | default('dev') }}
+        Role: {{ inventory_hostname }}
+      ============================================================
+    mode: "0644"

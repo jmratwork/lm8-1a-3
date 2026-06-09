@@ -1,0 +1,55 @@
+From: security-alerts@securebank-verify.bfcorp-sim.internal
+To: j.smith@securebank.ngsoc-lm8.internal
+Date: Mon, 08 Jun 2026 09:14:22 +0000
+Subject: Urgent: Q4 Wire Transfer Authorisation Required
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----=_Part_BlackFalcon_001"
+Message-ID: <BF20260608.091422.001@securebank-verify.bfcorp-sim.internal>
+X-Mailer: BlackFalcon-Sim/1.0 (TRAINING ARTEFACT)
+X-NG-SOC-Training: LM8-SubCase1a | SYNTHETIC | NOT-A-REAL-EMAIL
+
+------=_Part_BlackFalcon_001
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; font-size: 14px;">
+<p>Dear John,</p>
+<p>Our automated compliance system has flagged an outstanding Q4 wire transfer
+authorisation for <strong>&pound;247,500</strong> that requires your approval
+before 17:00 today to avoid a regulatory reporting obligation.</p>
+<p>Please review and sign the attached authorisation document
+(<em>Q4-wire-transfer-auth.docm</em>) using your SecureBank digital
+certificate. If you are unable to open the attachment, use our secure portal
+at:</p>
+<p style="text-align:center;">
+  <a href="http://update-svc.blackfalcon-sim.internal/update.php">
+    https://securebank-portal.bfcorp-sim.internal/auth
+  </a>
+</p>
+<p>If you did not initiate this transfer, contact your branch manager
+immediately and do <strong>NOT</strong> open the attachment.</p>
+<p>Kind regards,<br>
+SecureBank Compliance Team<br>
+Ref: COMP-2026-Q4-74821</p>
+<hr>
+<p style="font-size: 10px; color: #888888;">
+THIS IS A SYNTHETIC TRAINING ARTEFACT FOR NG-SOC LM8 EXERCISE.<br>
+All details (names, amounts, domains, URLs) are entirely fictitious.<br>
+The attachment does not contain real malware. The URL resolves only within
+the isolated cyber range (10.10.20.20).
+</p>
+</body>
+</html>
+
+------=_Part_BlackFalcon_001
+Content-Type: application/vnd.ms-word.document.macroEnabled.12
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Q4-wire-transfer-auth.docm"
+
+[SYNTHETIC ATTACHMENT PLACEHOLDER - NOT A REAL DOCM FILE]
+VGhpcyBpcyBhIHN5bnRoZXRpYyB0cmFpbmluZyBhcnRlZmFjdC4gTm8gcmVhbCBtYWNybwpvciBt
+YWxpY2lvdXMgY29udGVudCBpcyBwcmVzZW50LiBNRDU6IGFhYmJjY2RkMTEyMjMzNDRhYWJiY2Nk
+ZDExMjIzMzQ0
+------=_Part_BlackFalcon_001--

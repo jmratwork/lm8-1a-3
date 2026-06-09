@@ -1,0 +1,90 @@
+{
+  "title": "Exercise 2 – Containment and Eradication of a Targeted Attack (Incident Responder)",
+  "description": "Exercise 2 of NG-SOC LM8 – Phases: Containment, Eradication, Recovery. Role: CSIRT Analyst / Incident Responder.",
+  "levels": [
+    {
+      "type": "InfoLevel",
+      "title": "Scenario Brief",
+      "content": "**Exercise 2 – Targeted Attack Containment**\n\nYou are a CSIRT Analyst. The SOC has escalated the incident from Exercise 1:\n\n- **Confirmed**: `employee-ws` is infected with banking malware (beaconing to 10.10.20.20)\n- **Additional finding**: `web-banking` (10.10.20.10) was exploited via SQL Injection at `/login.php`; the attacker deployed a backdoor (`/tmp/.svc_update`) on `file-server` (10.10.30.20) and `db-server` (10.10.30.30)\n- **Data risk**: Customer table `bankdb.accounts` was accessed at 02:14 UTC by user `dbadmin` — unusual hour; possible exfiltration via DNS tunnelling to `update-svc.blackfalcon-sim.internal`\n- **Persistence**: Cron job `/etc/cron.d/svc-update` present on compromised hosts\n\n**IR Plan Section 3.2 has been activated.**\n\nYou have access to:\n- `analyst-host` (10.10.40.20): Velociraptor, TSK, Volatility 3, tcpdump, hashdeep\n- SIEM alerts at http://10.10.40.10:5601\n- Corporate hosts reachable from analyst-host (routing enabled)"
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 1 – Incident Scoping and Evidence Collection",
+      "content": "**Determine the full extent of the compromise and preserve evidence:**\n\n1. **Identify all affected systems**: Using Wazuh cross-host alerts, which hosts show indicators of the `svc_update` process or C2 connections?\n2. **Evidence collection plan**: List the evidence sources you will collect from each affected host. For each item state:\n   - Evidence type (disk image, memory dump, log file, network capture)\n   - Tool you will use\n   - Hash algorithm for integrity verification\n3. **Chain of custody**: Complete the chain-of-custody template at `~/reports/chain-of-custody-template.txt`\n4. Using Velociraptor on `analyst-host`, enumerate running processes on `file-server`. Look for the persistence mechanism.\n\n**Forensics quick-reference**: `~/tools/forensics-quickref.txt`",
+      "answer": "Affected: employee-ws, web-banking, file-server, db-server. Evidence: disk images (dcfldd + sha256sum), memory dumps (Volatility), auth logs, Apache access logs, netflow. Chain-of-custody must include hash verification step.",
+      "hints": [
+        {
+          "title": "Velociraptor process enumeration",
+          "content": "Run a VQL query on the affected host: SELECT * FROM pslist() WHERE Name CONTAINS 'svc_update'"
+        },
+        {
+          "title": "Order of volatility",
+          "content": "Always collect volatile data first: running processes → network connections → open files → system logs → disk image. Volatile data is lost on reboot."
+        }
+      ],
+      "mitre_attack_techniques": ["T1005", "T1041", "T1053.005"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 2 – Containment Strategy",
+      "content": "**Propose and justify your containment strategy:**\n\n1. **Immediate containment** (stop active attacker movement): Which actions will you take right now?\n   - Isolate specific hosts?\n   - Block C2 IP at router-perimeter?\n   - Disable compromised accounts?\n   - Take vulnerable services offline?\n2. **Business impact**: How do you minimise disruption while containing the threat? (Hint: can you isolate specific network segments vs. shutting down entire services?)\n3. **Prevent re-entry**: The web application is still vulnerable. How do you prevent the attacker from re-entering via the same vector while investigation continues?\n4. Document your containment actions in the decision log template (`~/handouts/decision-log.md`).",
+      "answer": "Containment: block 10.10.20.20 at router-perimeter (iptables DROP); quarantine employee-ws, file-server, db-server from each other; disable dbadmin account; take /login.php offline or WAF block. Business impact: web-banking may need temporary downtime vs. risk of continued breach.",
+      "hints": [
+        {
+          "title": "Firewall rule on router-perimeter",
+          "content": "SSH to router-perimeter and run: iptables -I FORWARD -d 10.10.20.20 -j DROP; iptables -I OUTPUT -d 10.10.20.20 -j DROP; netfilter-persistent save"
+        }
+      ],
+      "mitre_attack_techniques": ["T1190", "T1078"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 3 – Eradication, Recovery & Lessons Learned",
+      "content": "**Eradication:**\n1. List steps to remove the threat from ALL affected systems (not just the first one found)\n2. How do you verify each system is clean before returning it to production?\n3. The root cause was a SQL Injection flaw in `login.php` and a weak admin password. How do you fix both?\n\n**Recovery:**\n4. Which systems can be restored from backup? Which need to be rebuilt?\n5. What validation tests do you run before bringing systems back online?\n\n**Communication:**\n6. Draft a management-level SITREP using `~/handouts/sitrep-template.md`\n7. Should external parties be notified? (Regulators? Law enforcement? Customers?)\n\n**Lessons Learned:**\n8. Identify at least 2 lessons learned and the corresponding improvement actions.",
+      "answer": "Eradication: remove /etc/cron.d/svc-update on all affected hosts; remove /tmp/.svc_update; apply parameterised query fix to login.php; reset dbadmin password + enforce MFA. Recovery: restore db-server from backup; validate with antivirus scan + no suspicious outbound traffic. Notify: regulator (NIS2 72h deadline), potentially customers if data confirmed exfiltrated.",
+      "hints": [
+        {
+          "title": "Checking for the cron persistence",
+          "content": "Run: crontab -l && ls /etc/cron.d/ on each affected host. Look for any entry calling /tmp/.svc_update or beacon.sh."
+        },
+        {
+          "title": "NIS2 notification",
+          "content": "Under the EU NIS2 Directive, significant incidents affecting essential entities must be notified to the competent authority within 24 hours (early warning) and 72 hours (incident notification). A financial sector SOC would notify the national CSIRT and financial regulator."
+        }
+      ],
+      "mitre_attack_techniques": ["T1486", "T1190", "T1078", "T1053.005"]
+    },
+    {
+      "type": "AssessmentLevel",
+      "title": "Exercise 2 – Knowledge Check",
+      "questions": [
+        {
+          "type": "multiple_choice",
+          "text": "What is the PRIMARY reason for maintaining a chain-of-custody record when collecting digital evidence?",
+          "options": [
+            "To speed up the investigation",
+            "To ensure evidence integrity and admissibility for potential legal action",
+            "To comply with GDPR",
+            "To identify the attacker's nationality"
+          ],
+          "correct_answer": "To ensure evidence integrity and admissibility for potential legal action"
+        },
+        {
+          "type": "multiple_choice",
+          "text": "Which MITRE ATT&CK technique describes the cron job used by the malware to maintain access?",
+          "options": [
+            "T1059 – Command and Scripting Interpreter",
+            "T1053.005 – Scheduled Task/Job: Cron",
+            "T1078 – Valid Accounts",
+            "T1190 – Exploit Public-Facing Application"
+          ],
+          "correct_answer": "T1053.005 – Scheduled Task/Job: Cron"
+        },
+        {
+          "type": "free_form",
+          "text": "Describe TWO specific lessons learned from this incident and the corresponding improvement action for each."
+        }
+      ]
+    }
+  ]
+}

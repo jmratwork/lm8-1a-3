@@ -1,0 +1,9 @@
+---
+banking_app_port: 80
+banking_app_dir: "/var/www/html/banking"
+banking_db_name: "bankdb"
+banking_db_user: "bankapp"
+banking_db_password: "B4nkAppP@ss2025!"
+banking_admin_user: "admin"
+banking_admin_password: "admin123"
+mysql_root_password: "R00tP@ssNGSOC!"

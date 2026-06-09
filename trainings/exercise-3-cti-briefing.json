@@ -1,0 +1,86 @@
+{
+  "title": "Exercise 3 – Threat Intelligence Briefing: Black Falcon Campaign (CTI Analyst)",
+  "description": "Exercise 3 of NG-SOC LM8 – Role: Cyber Threat Intelligence Analyst. Platform: MISP (10.10.40.30).",
+  "levels": [
+    {
+      "type": "InfoLevel",
+      "title": "Scenario Brief",
+      "content": "**Exercise 3 – Black Falcon CTI Briefing**\n\nYou are a CTI Analyst. The FS-ISAC has issued an advisory about the **Black Falcon** banking malware campaign. Your MISP platform has received the event automatically.\n\n**Access MISP**: https://10.10.40.30\n- Login: admin / NGSOCAdmin2025!\n- Event: *Black Falcon – Banking Trojan Campaign* (Event #1001)\n\n**Context**: The organisation has NOT yet been confirmed as a target of Black Falcon, but the evidence from Exercise 1 (C2 IP 10.10.20.20 appears in MISP Event #1001) suggests a connection.\n\n**Your task**: Produce a **Threat Intelligence Brief** for internal distribution, with team-specific recommendations and an intelligence dissemination plan.\n\n> All IoCs in MISP are **synthetic training data**. Do not attempt to query external threat intel feeds."
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 1 – Threat Overview and IoC Analysis",
+      "content": "**Log in to MISP and review Event #1001.**\n\n1. **Threat Overview**: Summarise Black Falcon:\n   - Likely threat actor profile (financially motivated, targeting banking sector)\n   - Observed TTPs (initial access, C2, persistence, potential impact)\n   - Map TTPs to MITRE ATT&CK (at minimum: T1566, T1071, T1486)\n\n2. **IoC Analysis**: For each IoC in MISP Event #1001, state:\n   - Type and value\n   - Relevance to your organisation\n   - Recommended defensive action (block / monitor / hunt / no action)\n   - Reliability (High / Medium / Low) with justification\n\n3. **Critical finding**: The C2 IP `10.10.20.20` appears BOTH in the MISP Black Falcon event AND in the SIEM alerts from Exercise 1. What does this mean for the organisation's current threat posture?",
+      "answer": "The match between Exercise 1 C2 IP and MISP Event #1001 confirms the organisation is actively targeted by Black Falcon. IoCs: IP 10.10.20.20 (HIGH reliability – seen in live traffic), MD5/SHA256 hashes (HIGH – deploy on endpoints), phishing subjects (MEDIUM – update email gateway rules).",
+      "hints": [
+        {
+          "title": "MISP IoC export",
+          "content": "In MISP, go to Event #1001 → Download → CSV or JSON to export all attributes for tool ingestion."
+        },
+        {
+          "title": "MITRE ATT&CK mapping",
+          "content": "T1566.001 = Spearphishing Attachment (initial access via malicious DOCM), T1071.001 = C2 via HTTP/S, T1486 = ransomware/encryption, T1005 = data collection from local system."
+        }
+      ],
+      "mitre_attack_techniques": ["T1566.001", "T1071.001", "T1486", "T1005"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 2 – Risk Assessment and Team Recommendations",
+      "content": "**Assess the risk and produce actionable recommendations per team:**\n\n**Risk Assessment:**\n1. Which assets are most at risk given Black Falcon's TTPs? (Hint: payment processing, transaction DB, email-connected workstations)\n2. Evaluate current defences: do existing email filters, endpoint protections, and network monitoring cover the observed TTPs?\n3. Identify at least 2 defensive gaps.\n\n**Team-specific recommendations:**\n\n**For the SOC:**\n- What threat-hunting tasks should they run immediately?\n- What new detection rules should be added to the SIEM?\n\n**For the Incident Response Team:**\n- What preparation steps are needed given Black Falcon's behaviour?\n\n**For IT/Infrastructure:**\n- What preventive controls should be applied immediately?\n- What patch or configuration change addresses the observed TTPs?",
+      "answer": "Most at risk: email-connected workstations (phishing vector), db-server (transaction data), web-banking (T1190). Gaps: email gateway may not block macro-enabled DOCM from new domains; no YARA rules for Black Falcon hashes deployed yet. SOC: hunt for C2 IP in all agent logs; IR: update malware response playbook; IT: block .docm from external senders, apply web app patch.",
+      "hints": [
+        {
+          "title": "Creating a SIEM rule from MISP IoCs",
+          "content": "Export IP and domain IoCs from MISP. In Wazuh, create a rule that matches against the known C2 IP (10.10.20.20) in all network connection logs — this rule is already pre-loaded as rule 100001."
+        }
+      ],
+      "mitre_attack_techniques": ["T1190", "T1078", "T1566.001"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 3 – Intelligence Brief and Dissemination Plan",
+      "content": "**Produce the deliverables:**\n\n1. **Threat Intelligence Brief** (write in MISP or as a document):\n   - Summary of threat (2–3 sentences for executives)\n   - Key IoCs with defensive action per IoC\n   - Risk assessment (likelihood: Medium/High; impact: High)\n   - Recommendations (team-specific, from Task 2)\n   - Analyst's Notes (confidence level, uncertainties, caveats)\n\n2. **Dissemination plan**:\n   - What format for each audience? (Technical teams vs. executives vs. external partners)\n   - Should any IoCs be shared with the FS-ISAC or national CERT? Under what TLP marking?\n   - How will you use MISP to track if any IoCs are detected in your environment going forward?\n\n3. **Documentation**: Upload your brief to MISP as a note on Event #1001, or submit via REP.",
+      "answer": "Brief must include: executive summary, IoC table with actions, risk (High likelihood given live C2 match), team recommendations. Dissemination: technical detail (TLP:AMBER) to SOC/IR; high-level (TLP:WHITE) to executives; share new IoCs discovered with FS-ISAC under TLP:GREEN.",
+      "hints": [
+        {
+          "title": "TLP marking guidance",
+          "content": "TLP:RED = restricted to named recipients; TLP:AMBER = restricted to the organisation and trusted partners; TLP:GREEN = community sharing; TLP:WHITE = public. For FS-ISAC sharing, TLP:GREEN or TLP:AMBER are appropriate."
+        }
+      ],
+      "mitre_attack_techniques": ["T1566.001", "T1071.001"]
+    },
+    {
+      "type": "AssessmentLevel",
+      "title": "Exercise 3 – Knowledge Check",
+      "questions": [
+        {
+          "type": "multiple_choice",
+          "text": "The C2 IP seen in SIEM alerts matches an IoC in the MISP Black Falcon event. What is the FIRST action a CTI analyst should take?",
+          "options": [
+            "Publish a press release",
+            "Update the MISP event with the observed detection and escalate to IR with confirmed active targeting",
+            "Wait for more evidence before acting",
+            "Block the IP at the email gateway"
+          ],
+          "correct_answer": "Update the MISP event with the observed detection and escalate to IR with confirmed active targeting"
+        },
+        {
+          "type": "multiple_choice",
+          "text": "Which TLP marking is appropriate for sharing Black Falcon IoCs with the broader financial sector ISAC?",
+          "options": [
+            "TLP:RED (restricted to named persons only)",
+            "TLP:WHITE (public disclosure)",
+            "TLP:GREEN (community sharing) or TLP:AMBER (trusted partners)",
+            "No sharing – all incident data must remain internal"
+          ],
+          "correct_answer": "TLP:GREEN (community sharing) or TLP:AMBER (trusted partners)"
+        },
+        {
+          "type": "free_form",
+          "text": "Name THREE MITRE ATT&CK techniques associated with the Black Falcon campaign and describe a defensive control that addresses each one."
+        }
+      ]
+    }
+  ]
+}

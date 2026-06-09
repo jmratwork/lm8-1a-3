@@ -1,0 +1,246 @@
+---
+# Role: kali-redteam
+# Configures the Kali Linux red-team workstation for Exercise 4 (Pen Tester).
+# If kali-2020.4 image is unavailable, this role installs tools on Ubuntu instead.
+# Tools: nmap, metasploit, sqlmap, nikto, hydra, gobuster, wordlists.
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install core pen-test tools (available in Kali and Ubuntu repos)
+  ansible.builtin.apt:
+    name:
+      - nmap
+      - nikto
+      - hydra
+      - gobuster
+      - dirb
+      - enum4linux
+      - sqlmap
+      - curl
+      - wget
+      - git
+      - python3
+      - python3-pip
+      - tcpdump
+      - tshark
+      - netcat-openbsd
+      - smbclient
+      - whois
+      - dnsutils
+      - john
+      - hashcat
+    state: present
+  ignore_errors: true
+
+- name: Install Metasploit Framework
+  ansible.builtin.apt:
+    name: metasploit-framework
+    state: present
+  ignore_errors: true
+
+- name: Install SecLists wordlists
+  ansible.builtin.git:
+    repo: "https://github.com/danielmiessler/SecLists.git"
+    dest: /opt/SecLists
+    depth: 1
+  ignore_errors: true
+
+- name: Create pen-test workspace directory
+  ansible.builtin.file:
+    path: /home/kali/pentest
+    state: directory
+    owner: kali
+    group: kali
+    mode: "0755"
+  ignore_errors: true
+
+- name: Create pen-test workspace for student user
+  ansible.builtin.file:
+    path: "/home/{{ student_user }}/pentest"
+    state: directory
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"
+    mode: "0755"
+
+- name: Deploy pen-test engagement brief and scope document
+  ansible.builtin.copy:
+    dest: "/home/{{ student_user }}/pentest/engagement-brief.txt"
+    content: |
+      NG-SOC LM8 – Exercise 4 Pen Test Engagement Brief
+      ====================================================
+
+      CLIENT:       SecureBank Financial Services (Fictional)
+      ENGAGEMENT:   Adversarial Security Assessment – Cyber Range Simulation
+      TESTER ROLE:  Penetration Tester / Red Team Operator
+      DATE:         2025-11-15
+      AUTHORISED BY: Security Director, SecureBank (fictional)
+
+      SCOPE
+      -----
+      In-scope:
+        - 10.10.20.0/24 (DMZ – banking web application)
+        - 10.10.30.0/24 (Corporate LAN – internal servers)
+          NOTE: Lateral movement to 10.10.30.0/24 is within scope
+          ONLY after establishing initial foothold via 10.10.20.0/24.
+
+      Out-of-scope:
+        - 10.10.40.0/24 (Security tools segment)
+        - 10.10.50.0/24 (Red-team segment itself)
+        - Any denial-of-service activity
+        - Destruction or modification of any data
+
+      RULES OF ENGAGEMENT
+      -------------------
+      - No DoS or disruptive attacks
+      - No data destruction
+      - Document all findings with evidence
+      - Start time logged by instructor
+      - Report format: Penetration Test Report (see template)
+
+      PRIMARY TARGET
+      --------------
+      web-banking.ngsoc-lm8.internal (10.10.20.10)
+        - HTTP: http://10.10.20.10/
+        - Login page: http://10.10.20.10/login.php
+        - Admin area: http://10.10.20.10/admin (discover via enumeration)
+
+      THREAT INTELLIGENCE CONTEXT
+      ---------------------------
+      Recent CTI from MISP (Event #1001 – Black Falcon):
+        - Known attack vectors: SQL injection, credential brute-force
+        - Targeting: banking transaction systems
+        - MITRE TTPs: T1190, T1078, T1005, T1041
+
+      AVAILABLE TOOLS (this workstation)
+      -----------------------------------
+      nmap, nikto, gobuster, dirb, sqlmap, hydra, metasploit-framework,
+      john, hashcat, tcpdump, tshark, curl, wget, enum4linux, smbclient
+
+      Wordlists: /opt/SecLists/
+      Metasploit DB: msfdb init && msfconsole
+
+      PENTEST REPORT TEMPLATE
+      -----------------------
+      See: ~/pentest/report-template.md
+    mode: "0644"
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"
+
+- name: Deploy pen-test report template
+  ansible.builtin.copy:
+    dest: "/home/{{ student_user }}/pentest/report-template.md"
+    content: |
+      # Penetration Test Report
+      ## SecureBank Financial Services – Cyber Range Exercise (NG-SOC LM8)
+
+      | Field | Value |
+      |---|---|
+      | Client | SecureBank Financial Services (Fictional) |
+      | Assessment Type | Web Application + Internal Network |
+      | Date | YYYY-MM-DD |
+      | Tester | [Your Name / Role] |
+      | Classification | RESTRICTED – Training Document |
+
+      ---
+
+      ## Executive Summary
+
+      [Write 2–3 sentences suitable for a non-technical C-suite audience.
+      Describe: what was tested, the overall security posture finding, and
+      the most critical risk if left unaddressed.]
+
+      Overall risk rating: CRITICAL / HIGH / MEDIUM / LOW
+
+      ---
+
+      ## Methodology
+
+      - Reconnaissance: [tools and approach]
+      - Scanning: [tools and approach]
+      - Exploitation: [tools and approach]
+      - Post-Exploitation / Lateral Movement: [approach]
+      - Reporting: [this document]
+
+      Threat-intelligence integration: [reference to CTI brief / MISP event #1001]
+      MITRE ATT&CK framework used for technique mapping.
+
+      ---
+
+      ## Attack Narrative (Kill Chain)
+
+      ### Phase 1 – Reconnaissance
+      [Describe what you discovered about the target. Nmap results, web
+      crawl findings, open directories, etc.]
+
+      ### Phase 2 – Initial Access (T1190 / T1078)
+      [Describe how you obtained initial access. SQLi payload used, or
+      brute-forced credentials, etc.]
+
+      ### Phase 3 – Exploitation
+      [What did you do once in? Dashboard access, DB dump, etc.]
+
+      ### Phase 4 – Lateral Movement (if applicable)
+      [Did you pivot to internal systems? How?]
+
+      ---
+
+      ## Findings
+
+      ### Finding 1 – [SEVERITY: CRITICAL] [Title]
+
+      | Field | Detail |
+      |---|---|
+      | Severity | CRITICAL |
+      | CVSS v3 Score | 9.8 |
+      | MITRE ATT&CK | T1190 – Exploit Public-Facing Application |
+      | Affected Component | [e.g., login.php – username field] |
+      | Discovered | [date/time] |
+
+      **Description**: [Explain the vulnerability]
+
+      **Evidence**:
+      ```
+      [Paste payload, request/response, or command output here]
+      ```
+
+      **Impact**: [What could an attacker do? Data exfiltration, auth bypass?]
+
+      **Root Cause**: [Why does this exist? Missing input validation, etc.]
+
+      **Remediation**:
+      1. [Specific fix – e.g., use parameterised queries / prepared statements]
+      2. [Compensating control – e.g., WAF rule]
+      3. [Monitoring – e.g., alert on SQL error strings in web logs]
+
+      ---
+
+      ### Finding 2 – [SEVERITY: HIGH] [Title]
+
+      [Same structure as Finding 1]
+
+      ---
+
+      ## Summary of Findings
+
+      | # | Title | Severity | MITRE | Remediated By |
+      |---|---|---|---|---|
+      | 1 | | CRITICAL | T1190 | |
+      | 2 | | HIGH | T1078 | |
+
+      ---
+
+      ## Recommendations
+
+      [Prioritised list of remediation actions]
+
+      ## Next Steps
+
+      - [ ] Re-test after remediation (target date: )
+      - [ ] Implement monitoring recommendations
+      - [ ] Security awareness training for developers
+    mode: "0644"
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"

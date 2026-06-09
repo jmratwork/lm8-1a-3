@@ -1,0 +1,143 @@
+[
+  {
+    "_index": "wazuh-alerts-4.x-2026.06.08",
+    "_source": {
+      "timestamp": "2026-06-08T02:13:44.000Z",
+      "rule": {
+        "id": "100001",
+        "level": 12,
+        "description": "Outbound TCP connection to known Black Falcon C2 infrastructure",
+        "mitre": {"id": ["T1071.001"], "tactic": ["Command and Control"]}
+      },
+      "agent": {"id": "002", "name": "employee-ws", "ip": "10.10.30.10"},
+      "data": {
+        "srcip": "10.10.30.10", "srcport": "49231",
+        "dstip": "10.10.20.20",  "dstport": "4444",
+        "protocol": "tcp", "action": "connect"
+      },
+      "location": "syscheck"
+    }
+  },
+  {
+    "_source": {
+      "timestamp": "2026-06-08T02:13:46.000Z",
+      "rule": {
+        "id": "100002",
+        "level": 10,
+        "description": "Endpoint agent: possible Trojan infection – process /tmp/.svc_update",
+        "mitre": {"id": ["T1053.005"], "tactic": ["Persistence"]}
+      },
+      "agent": {"id": "002", "name": "employee-ws", "ip": "10.10.30.10"},
+      "data": {
+        "process": "/tmp/.svc_update",
+        "message": "svc_update: WARN possible Trojan infection — process /tmp/.svc_update"
+      }
+    }
+  },
+  {
+    "_source": {
+      "timestamp": "2026-06-08T02:14:11.000Z",
+      "rule": {
+        "id": "100005",
+        "level": 11,
+        "description": "DNS query to known Black Falcon C2 domain",
+        "mitre": {"id": ["T1071.001"], "tactic": ["Command and Control"]}
+      },
+      "agent": {"id": "002", "name": "employee-ws", "ip": "10.10.30.10"},
+      "data": {
+        "query": "update-svc.blackfalcon-sim.internal",
+        "query_type": "A",
+        "response": "10.10.20.20"
+      }
+    }
+  },
+  {
+    "_source": {
+      "timestamp": "2026-06-08T02:14:33.000Z",
+      "rule": {
+        "id": "100003",
+        "level": 13,
+        "description": "Possible lateral movement: SMB connection to file-server",
+        "mitre": {"id": ["T1021.002"], "tactic": ["Lateral Movement"]}
+      },
+      "agent": {"id": "002", "name": "employee-ws", "ip": "10.10.30.10"},
+      "data": {
+        "srcip": "10.10.30.10", "dstip": "10.10.30.20", "dstport": "445",
+        "protocol": "tcp", "action": "connect", "user": "jsmith"
+      }
+    }
+  },
+  {
+    "_source": {
+      "timestamp": "2026-06-08T02:15:02.000Z",
+      "rule": {
+        "id": "5502",
+        "level": 10,
+        "description": "Successful sudo to root",
+        "mitre": {"id": ["T1078"], "tactic": ["Privilege Escalation"]}
+      },
+      "agent": {"id": "003", "name": "file-server", "ip": "10.10.30.20"},
+      "data": {
+        "user": "jsmith",
+        "command": "/bin/bash",
+        "srcip": "10.10.30.10"
+      }
+    }
+  },
+  {
+    "_source": {
+      "timestamp": "2026-06-08T02:15:44.000Z",
+      "rule": {
+        "id": "100004",
+        "level": 14,
+        "description": "Mass .locked extension rename detected – possible ransomware",
+        "mitre": {"id": ["T1486"], "tactic": ["Impact"]}
+      },
+      "agent": {"id": "003", "name": "file-server", "ip": "10.10.30.20"},
+      "data": {
+        "path": "/srv/data/",
+        "renamed_files": 47,
+        "extension": ".locked",
+        "time_window_seconds": 12
+      }
+    }
+  },
+  {
+    "_source": {
+      "timestamp": "2026-06-08T02:16:01.000Z",
+      "rule": {
+        "id": "100001",
+        "level": 12,
+        "description": "Outbound TCP connection to known Black Falcon C2 infrastructure",
+        "mitre": {"id": ["T1071.001"], "tactic": ["Command and Control"]}
+      },
+      "agent": {"id": "004", "name": "db-server", "ip": "10.10.30.30"},
+      "data": {
+        "srcip": "10.10.30.30", "srcport": "52109",
+        "dstip": "10.10.20.20",  "dstport": "4444",
+        "protocol": "tcp"
+      }
+    }
+  },
+  {
+    "_source": {
+      "timestamp": "2026-06-08T02:16:22.000Z",
+      "rule": {
+        "id": "31101",
+        "level": 12,
+        "description": "Unusual access to database: login outside business hours by dbadmin",
+        "mitre": {"id": ["T1005"], "tactic": ["Collection"]}
+      },
+      "agent": {"id": "004", "name": "db-server", "ip": "10.10.30.30"},
+      "data": {
+        "user": "dbadmin",
+        "database": "bankdb",
+        "table": "accounts",
+        "rows_accessed": 147,
+        "query_type": "SELECT",
+        "time": "02:16:22 UTC",
+        "hour": 2
+      }
+    }
+  }
+]

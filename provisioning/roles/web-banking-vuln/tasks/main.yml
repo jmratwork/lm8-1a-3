@@ -1,0 +1,180 @@
+---
+# Role: web-banking-vuln
+# Deploys a deliberately vulnerable PHP banking web application.
+# Intentional weaknesses (educational only – isolated sandbox):
+#   - SQL Injection in /login.php (T1190)
+#   - Weak admin credentials admin/admin123 (T1078)
+#   - Publicly accessible /backup/ directory (information disclosure)
+# NEVER deploy this outside an isolated training sandbox.
+
+- name: Install web server and PHP dependencies
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - php
+      - php-mysql
+      - php-mbstring
+      - libapache2-mod-php
+      - mysql-server
+      - python3-pymysql
+    state: present
+    update_cache: true
+
+- name: Ensure MySQL is started and enabled
+  ansible.builtin.service:
+    name: mysql
+    state: started
+    enabled: true
+
+- name: Set MySQL root password
+  community.mysql.mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: root
+    password: "{{ mysql_root_password }}"
+    login_user: root
+    login_password: ""
+    check_implicit_admin: true
+    state: present
+  ignore_errors: true
+
+- name: Create banking database
+  community.mysql.mysql_db:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    name: "{{ banking_db_name }}"
+    state: present
+
+- name: Create banking app database user
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    name: "{{ banking_db_user }}"
+    password: "{{ banking_db_password }}"
+    priv: "{{ banking_db_name }}.*:ALL"
+    host: localhost
+    state: present
+
+- name: Create banking application directory
+  ansible.builtin.file:
+    path: "{{ banking_app_dir }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Deploy banking application files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ banking_app_dir }}/{{ item.dest }}"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+  loop:
+    - { src: "index.html.j2",   dest: "index.html" }
+    - { src: "login.php.j2",    dest: "login.php" }
+    - { src: "dashboard.php.j2", dest: "dashboard.php" }
+    - { src: "db.php.j2",       dest: "db.php" }
+    - { src: "style.css.j2",    dest: "style.css" }
+
+- name: Create /backup directory (information disclosure finding)
+  ansible.builtin.file:
+    path: "{{ banking_app_dir }}/backup"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Place synthetic backup file in /backup (information disclosure)
+  ansible.builtin.copy:
+    dest: "{{ banking_app_dir }}/backup/db_backup_2025-01-15.sql.gz.txt"
+    content: |
+      -- SYNTHETIC BACKUP FILE (training artefact – not real data)
+      -- NG-SOC LM8 Exercise 4 – Information Disclosure Finding
+      -- In a real engagement, this file would contain a database dump.
+      -- Finding: backup directory publicly accessible without authentication.
+      -- MITRE ATT&CK: T1083 (File and Directory Discovery)
+    owner: www-data
+    group: www-data
+    mode: "0644"
+
+- name: Seed database with synthetic customer and transaction tables
+  community.mysql.mysql_query:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    login_db: "{{ banking_db_name }}"
+    query: |
+      CREATE TABLE IF NOT EXISTS accounts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        full_name VARCHAR(100),
+        account_number VARCHAR(20),
+        balance DECIMAL(12,2),
+        email VARCHAR(100)
+      );
+      CREATE TABLE IF NOT EXISTS transactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        from_account VARCHAR(20),
+        to_account VARCHAR(20),
+        amount DECIMAL(12,2),
+        timestamp DATETIME,
+        description VARCHAR(255)
+      );
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(20)
+      );
+      INSERT IGNORE INTO admin_users (username, password, role)
+        VALUES ('admin', 'admin123', 'superadmin');
+
+- name: Seed synthetic customer records (100 rows)
+  ansible.builtin.shell:
+    cmd: |
+      mysql -u root -p{{ mysql_root_password }} {{ banking_db_name }} -e "
+      INSERT IGNORE INTO accounts (username, password_hash, full_name, account_number, balance, email)
+      SELECT
+        CONCAT('user', n),
+        SHA2(CONCAT('pass', n, 'salt'), 256),
+        CONCAT('Customer ', n),
+        CONCAT('GB00NGSOC', LPAD(n, 8, '0')),
+        ROUND(RAND() * 50000, 2),
+        CONCAT('user', n, '@ngsoc-sim.internal')
+      FROM (SELECT @row := @row + 1 AS n FROM (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) a
+      CROSS JOIN (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) b
+      CROSS JOIN (SELECT @row := 0) init
+      LIMIT 100) nums;
+      "
+  changed_when: true
+  no_log: true
+
+- name: Configure Apache virtual host
+  ansible.builtin.template:
+    src: apache-vhost.j2
+    dest: /etc/apache2/sites-available/banking.conf
+    mode: "0644"
+
+- name: Enable banking virtual host
+  ansible.builtin.command:
+    cmd: a2ensite banking.conf
+  changed_when: true
+  notify: Restart Apache
+
+- name: Disable default Apache site
+  ansible.builtin.command:
+    cmd: a2dissite 000-default.conf
+  changed_when: true
+  notify: Restart Apache
+
+- name: Enable Apache mod_rewrite
+  ansible.builtin.command:
+    cmd: a2enmod rewrite
+  changed_when: true
+  notify: Restart Apache
+
+- name: Ensure Apache is started and enabled
+  ansible.builtin.service:
+    name: apache2
+    state: started
+    enabled: true

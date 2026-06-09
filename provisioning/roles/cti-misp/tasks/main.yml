@@ -1,0 +1,234 @@
+---
+# Role: cti-misp
+# Deploys MISP (Malware Information Sharing Platform) on the CTI host.
+# Uses Docker for deployment simplicity (avoids complex PHP/Redis/MariaDB setup).
+# Pre-loads Black Falcon campaign IoCs via MISP REST API post-install.
+# Exercise: 3 (CTI Analyst Briefing)
+# Requires standard.large (MariaDB + Redis + PHP-FPM + nginx)
+
+- name: Install Docker prerequisites
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose
+      - python3-docker
+    state: present
+    update_cache: true
+
+- name: Ensure Docker is started and enabled
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Create MISP deployment directory
+  ansible.builtin.file:
+    path: /opt/misp-docker
+    state: directory
+    mode: "0755"
+
+- name: Deploy MISP docker-compose configuration
+  ansible.builtin.copy:
+    dest: /opt/misp-docker/docker-compose.yml
+    content: |
+      version: "3.8"
+      services:
+        misp:
+          image: ghcr.io/misp/misp-docker/misp-core:latest
+          restart: always
+          ports:
+            - "443:443"
+            - "80:80"
+          environment:
+            - MISP_BASEURL=https://{{ c2_ip | replace(c2_ip, "10.10.40.30") }}
+            - MISP_ADMIN_EMAIL={{ misp_admin_email }}
+            - MISP_ADMIN_PASSPHRASE=NGSOCAdmin2025!
+            - MISP_ORG={{ misp_org_name }}
+            - MISP_DISABLE_SSL_REDIRECT=1
+          volumes:
+            - misp-data:/var/www/MISP/app/files
+            - misp-logs:/var/www/MISP/app/tmp/logs
+        misp-db:
+          image: mariadb:10.11
+          restart: always
+          environment:
+            - MYSQL_DATABASE=misp
+            - MYSQL_USER=misp
+            - MYSQL_PASSWORD=misp_db_pass_2025
+            - MYSQL_ROOT_PASSWORD=misp_root_pass_2025
+          volumes:
+            - misp-db:/var/lib/mysql
+        misp-redis:
+          image: redis:7-alpine
+          restart: always
+      volumes:
+        misp-data:
+        misp-logs:
+        misp-db:
+    mode: "0644"
+
+- name: Start MISP containers
+  community.docker.docker_compose:
+    project_src: /opt/misp-docker
+    state: present
+    pull: true
+  ignore_errors: true
+
+- name: Wait for MISP to become available
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 443
+    delay: 30
+    timeout: 300
+  ignore_errors: true
+
+- name: Deploy MISP IoC seed script (Black Falcon event)
+  ansible.builtin.copy:
+    dest: /opt/misp-docker/seed-black-falcon.py
+    mode: "0755"
+    content: |
+      #!/usr/bin/env python3
+      """
+      NG-SOC LM8 – Seeds the Black Falcon campaign IoCs into MISP.
+      Run after MISP is fully started.
+      All IoCs are SYNTHETIC (fictional) – training purpose only.
+      """
+      import json
+      import urllib.request
+      import urllib.error
+      import ssl
+      import time
+
+      MISP_URL = "https://127.0.0.1"
+      API_KEY  = "CHANGE_AFTER_INSTALL"  # Replace with key from MISP UI
+      HEADERS  = {
+          "Authorization": API_KEY,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+      }
+
+      # Disable SSL verification for self-signed cert in lab
+      ctx = ssl.create_default_context()
+      ctx.check_hostname = False
+      ctx.verify_mode = ssl.CERT_NONE
+
+      EVENT = {
+          "Event": {
+              "info": "Black Falcon – Banking Trojan Campaign (NG-SOC LM8 Training)",
+              "distribution": 0,
+              "threat_level_id": 2,
+              "analysis": 1,
+              "Attribute": [
+                  {
+                      "type": "ip-dst",
+                      "category": "Network activity",
+                      "value": "10.10.20.20",
+                      "comment": "C2 server IP – Black Falcon campaign (SIMULATED)",
+                      "to_ids": True
+                  },
+                  {
+                      "type": "domain",
+                      "category": "Network activity",
+                      "value": "update-svc.blackfalcon-sim.internal",
+                      "comment": "C2 domain – Black Falcon (SIMULATED)",
+                      "to_ids": True
+                  },
+                  {
+                      "type": "md5",
+                      "category": "Payload delivery",
+                      "value": "aabbccdd11223344aabbccdd11223344",
+                      "comment": "BlackFalcon dropper MD5 (SIMULATED – not real malware)",
+                      "to_ids": True
+                  },
+                  {
+                      "type": "sha256",
+                      "category": "Payload delivery",
+                      "value": "deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb",
+                      "comment": "BlackFalcon stage-2 loader SHA256 (SIMULATED)",
+                      "to_ids": True
+                  },
+                  {
+                      "type": "email-subject",
+                      "category": "Payload delivery",
+                      "value": "Urgent: Q4 Wire Transfer Authorisation Required",
+                      "comment": "Spear-phishing lure subject – Black Falcon (SIMULATED)",
+                      "to_ids": False
+                  },
+                  {
+                      "type": "email-subject",
+                      "category": "Payload delivery",
+                      "value": "Security Alert: Verify Your Online Banking Credentials",
+                      "comment": "Spear-phishing lure subject – Black Falcon (SIMULATED)",
+                      "to_ids": False
+                  },
+                  {
+                      "type": "filename",
+                      "category": "Payload delivery",
+                      "value": "Q4-wire-transfer-auth.docm",
+                      "comment": "Malicious macro-enabled attachment (SIMULATED)",
+                      "to_ids": True
+                  },
+                  {
+                      "type": "url",
+                      "category": "External analysis",
+                      "value": "http://update-svc.blackfalcon-sim.internal/update.php",
+                      "comment": "C2 beacon URL – Black Falcon (SIMULATED)",
+                      "to_ids": True
+                  }
+              ],
+              "Tag": [
+                  {"name": "misp-galaxy:mitre-attack-pattern=\"Spearphishing Attachment - T1566.001\""},
+                  {"name": "misp-galaxy:mitre-attack-pattern=\"Application Layer Protocol - T1071.001\""},
+                  {"name": "misp-galaxy:mitre-attack-pattern=\"Data Encrypted for Impact - T1486\""},
+                  {"name": "tlp:amber"},
+                  {"name": "ngsoc:module=lm8-ex3"},
+                  {"name": "ngsoc:type=synthetic-training-data"}
+              ]
+          }
+      }
+
+      def post_json(path, data):
+          body = json.dumps(data).encode()
+          req = urllib.request.Request(f"{MISP_URL}{path}", data=body, headers=HEADERS, method="POST")
+          try:
+              with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
+                  return json.loads(resp.read())
+          except urllib.error.HTTPError as e:
+              print(f"HTTP {e.code}: {e.read().decode()}")
+              return None
+
+      if __name__ == "__main__":
+          print("Seeding Black Falcon event into MISP...")
+          result = post_json("/events/add", EVENT)
+          if result:
+              event_id = result.get("Event", {}).get("id", "unknown")
+              print(f"Event created: ID={event_id}")
+          else:
+              print("Failed to create event. Check API key and MISP availability.")
+
+- name: Create MISP IoC loading README
+  ansible.builtin.copy:
+    dest: /opt/misp-docker/README-SEED.md
+    content: |
+      # MISP IoC Seeding – NG-SOC LM8
+
+      ## Automatic seeding
+      The seed script requires a valid MISP API key. After MISP is fully
+      started and you have logged in as admin:
+
+      1. Go to Administration → My Profile → Auth key
+      2. Copy your auth key
+      3. Edit /opt/misp-docker/seed-black-falcon.py
+         Replace: API_KEY = "CHANGE_AFTER_INSTALL"
+         With:    API_KEY = "<your_key>"
+      4. Run: python3 /opt/misp-docker/seed-black-falcon.py
+
+      ## Manual seeding (alternative)
+      If automatic seeding fails, import /opt/misp-docker/black-falcon-event.json
+      via MISP UI → Import → MISP JSON.
+
+      ## Verifying
+      After seeding, confirm Event #1001 is visible in MISP Events list.
+      IoCs should include: 1 IP, 1 domain, 2 hashes, 2 email subjects,
+      1 filename, 1 URL.
+    mode: "0644"

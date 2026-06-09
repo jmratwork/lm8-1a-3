@@ -1,0 +1,95 @@
+{
+  "title": "Exercise 5 – IR Coordination Tabletop: Ransomware Crisis (IR Coordinator)",
+  "description": "Exercise 5 of NG-SOC LM8 – Role: IR Coordinator / Crisis Manager. Format: tabletop simulation. Covers NIS2 notification obligations, multi-team coordination, and executive communication.",
+  "levels": [
+    {
+      "type": "InfoLevel",
+      "title": "Scenario Brief",
+      "content": "**Exercise 5 – Ransomware Crisis Tabletop**\n\nYou are the **IR Coordinator** at SecureBank. It is 14:35 UTC on a Tuesday. The following has just been reported:\n\n1. **IT Operations** reports: the shared file server (`file-server`) is inaccessible. All files show `.locked` extension.\n2. **SOC Analyst** reports: SIEM alerts show mass file rename events on `file-server` starting 14:20 UTC. Rule 100004 fired: 'Mass .locked extension rename detected – possible ransomware'.\n3. A ransom note `README-RANSOM.txt` has appeared at the root of every share.\n4. **CFO's office** is calling: client-facing banking services appear degraded.\n\nThe tabletop scenario brief is at `/opt/ngsoc-artifacts/ex5-ransomware/tabletop-scenario.txt`\n\n**You must coordinate all five IR roles simultaneously:**\n- SOC Analyst (Exercise 1 role)\n- Incident Responder (Exercise 2 role)\n- CTI Analyst (Exercise 3 role)\n- Pen Tester (now acting as Red Team consultant advising on attacker perspective)\n\n**Available templates**: `~/handouts/decision-log.md`, `~/handouts/sitrep-template.md`\n\n> This is a **tabletop exercise** — you will coordinate actions and decision-making, not execute technical tasks yourself."
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 1 – Initial Assessment and Activation",
+      "content": "**First 30 minutes: Establish situational awareness and activate IR plan**\n\n**Immediate (first 5 minutes):**\n1. Is this a confirmed incident or an alert to be triaged? What evidence tips it from alert to confirmed incident?\n2. What is the immediate business impact? Which services are affected?\n3. Do you stand up an Incident Command structure immediately, or wait for more information?\n\n**Activation decisions:**\n4. Which IR plan tier is this? (Major / Significant / Minor) Justify your classification.\n5. Who do you notify immediately? (List roles, not names.)\n6. Do you call the Incident Command team to an emergency bridge call? At what threshold do you do this vs. handle it at the SOC level?\n\n**Evidence of scope:**\n7. The SOC analyst reports the alert only shows `file-server` so far. The Incident Responder notes that `employee-ws` was the initially compromised host (from Exercise 2). What is the likely attack chain? Has the ransomware spread beyond `file-server`?",
+      "answer": "Confirmed incident (ransom note + mass .locked files = ransomware, not a false positive). Immediate impact: file-server offline, client-facing degradation. Major incident tier (data encryption, ongoing operational impact). Notify: CISO, IT Director, Legal, Communications. Call bridge immediately. Likely attack chain: phishing → employee-ws → lateral to file-server → encryption. Risk: db-server may also be targeted.",
+      "hints": [
+        {
+          "title": "Major vs. significant incident",
+          "content": "A 'Major' incident typically involves confirmed data loss or encryption of production systems, ongoing active threat, or regulatory notification thresholds being met. Ransomware on a file server hosting customer data is almost always Major."
+        }
+      ],
+      "mitre_attack_techniques": ["T1486", "T1021.002", "T1005"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 2 – Coordination and Decision-Making",
+      "content": "**Coordinate the multi-team response:**\n\n**Containment coordination:**\n1. The Incident Responder wants to immediately wipe and rebuild `file-server`. The Legal team says to preserve evidence first. The CFO wants services restored in 2 hours. How do you resolve this three-way conflict?\n2. Should you isolate `file-server` from the network immediately? What is the risk of NOT isolating it?\n3. The Red Team consultant (Ex4 role) advises the ransomware likely has a C2 check-in before encryption completes. What does this tell you about the network isolation decision?\n\n**CTI Analyst input:**\n4. The CTI Analyst reports: the ransom note text matches a known Black Falcon variant in MISP. Does this change your decisions? (Threat actor profile: financially motivated, known to exfiltrate before encrypting)\n5. Should you proactively check if customer data was exfiltrated BEFORE the encryption? How?\n\n**Decision log:**\n6. Record at least 4 decisions in `~/handouts/decision-log.md` with time, decision, rationale, and who made it.\n\n**Communication:**\n7. Draft a SITREP using `~/handouts/sitrep-template.md` for senior management.",
+      "answer": "Resolution: isolate first (stop spread), then forensic copy (evidence), then rebuild (restore). Do NOT wipe until evidence is collected. Isolated from network immediately — C2 check-in means if connected, attacker could trigger secondary payload. CTI match (Black Falcon) = assume data exfiltration before encryption; check netflow/DNS logs for large outbound transfers. Decision log must have timestamps and rationale.",
+      "hints": [
+        {
+          "title": "Exfiltration detection method",
+          "content": "Check DNS query logs on router-perimeter and SIEM for unusual outbound data to the known C2 domain: update-svc.blackfalcon-sim.internal. Also check file-server's netstat output collected before isolation."
+        }
+      ],
+      "mitre_attack_techniques": ["T1041", "T1486", "T1021.002"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 3 – Regulatory Notification and External Communication",
+      "content": "**NIS2 Directive notification obligations:**\n\n1. **24-hour early warning**: You are now 2 hours into the incident. Confirm: does this incident trigger NIS2 notification? (SecureBank is an essential entity in the financial sector.) State your reasoning.\n\n2. **Early warning content**: What must your 24-hour early warning to the national CERT / competent authority include?\n   - Incident description (what happened)\n   - Initial assessment (is it malicious? Significant?)\n   - Impacted services\n   - Preliminary root cause (if known)\n\n3. **72-hour notification**: Plan the full 72-hour notification. What additional information must you have ready?\n\n4. **Customer notification decision**: Customer data MAY have been exfiltrated before encryption. At what point do you notify customers? (GDPR breach notification: 72h to authority, without undue delay to affected individuals.)\n\n5. **Press/media handling**: The CFO asks if you should proactively issue a statement. What are the risks of communicating vs. not communicating at this stage?\n\n6. **Law enforcement**: Should you contact law enforcement? What do they provide that your team cannot?",
+      "answer": "Yes: NIS2 applies to financial sector essential entities; ransomware with potential data breach triggers notification. 24h early warning: describe event, confirm malicious, state impacted services. 72h: include IoCs, affected systems, data categories, actions taken, remediation plan. Customer GDPR notification required if customer data exfiltration confirmed. Media: wait until facts are established; early public statement risks panic.",
+      "hints": [
+        {
+          "title": "NIS2 notification threshold",
+          "content": "Under NIS2 (Article 23), an 'incident' with a 'significant impact on the provision of essential services' triggers the 24h/72h notification timeline. Ransomware encrypting production data at a bank clearly meets this threshold."
+        }
+      ],
+      "mitre_attack_techniques": ["T1486", "T1041"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 4 – After-Action Review",
+      "content": "**Post-incident review (simulated 1 week later):**\n\n**Produce an After-Action Report using `~/handouts/ex5-after-action-report.md`:**\n\n1. **Timeline reconstruction**: Build a complete attack timeline from first phishing email to ransomware deployment. Identify the detection gap (when did the attack START vs. when was it DETECTED).\n\n2. **Root causes** (aim for systemic, not individual blame):\n   - What security controls failed or were absent?\n   - What process gaps existed in the IR plan?\n   - Were there detection opportunities that were missed?\n\n3. **What went well**: Name at least 2 things the team did correctly.\n\n4. **Improvement actions** (SMART format — Specific, Measurable, Achievable, Relevant, Time-bound):\n   - At least 3 technical improvements\n   - At least 2 process/training improvements\n\n5. **WP5:M8 reflection**: Which of the 7 module topics were demonstrated in this exercise? List them.\n\n6. **Assessed activity 2.0.2 deliverable**: This exercise is the capstone for Assessed Activity 2.0.2 (Collaborative Response Chain). Confirm which team members contributed to which exercise phases.",
+      "answer": "Timeline: phishing → employee-ws compromise → lateral movement → file-server encryption (detection gap: ~12h). Root causes: phishing not blocked (email filter gap), lateral movement not detected (no segmentation between corp hosts), cron persistence survived initial 'cleanup'. Improvement actions: email macro blocking (IT, immediate), host-based segmentation on corp segment (IT, 30 days), quarterly IR plan rehearsal (security team, 90 days).",
+      "hints": [
+        {
+          "title": "SMART improvement actions example",
+          "content": "Weak: 'Improve phishing detection'. Strong: 'Block .docm attachments from external senders at the email gateway (IT Operations, within 5 business days of this report)'"
+        }
+      ],
+      "mitre_attack_techniques": ["T1566.001", "T1053.005", "T1486"]
+    },
+    {
+      "type": "AssessmentLevel",
+      "title": "Exercise 5 – Knowledge Check",
+      "questions": [
+        {
+          "type": "multiple_choice",
+          "text": "Under the EU NIS2 Directive, when must an essential entity submit an early warning notification following a significant incident?",
+          "options": [
+            "Within 7 days of detection",
+            "Within 72 hours of detection",
+            "Within 24 hours of becoming aware of the incident",
+            "Only if customer data is confirmed lost"
+          ],
+          "correct_answer": "Within 24 hours of becoming aware of the incident"
+        },
+        {
+          "type": "multiple_choice",
+          "text": "The CTI Analyst confirms the ransomware matches the Black Falcon group, which is known to exfiltrate data before encrypting. What is the MOST important implication for IR decision-making?",
+          "options": [
+            "The incident is less severe because encryption is the final step",
+            "A potential GDPR data breach notification obligation now applies, as data exfiltration may have occurred",
+            "No change to IR plan is needed since the network has already been isolated",
+            "The Pen Tester role should be removed from the response"
+          ],
+          "correct_answer": "A potential GDPR data breach notification obligation now applies, as data exfiltration may have occurred"
+        },
+        {
+          "type": "free_form",
+          "text": "Describe the IR Coordinator's primary role during a ransomware crisis and explain how the collaborative response chain (Exercises 1–5) demonstrates the interdependence of the five ECSF roles covered in this module."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+---
+# ============================================================================
+# NG-SOC LM8 Sub Case 1a – Main Provisioning Playbook
+# Run order mirrors network dependency: routers → corp servers → security tools
+# All plays use become: true; connection uses SSH keys injected by the platform.
+# ============================================================================
+
+# ── 1. Common baseline for ALL nodes ────────────────────────────────────────
+- name: Common baseline (all nodes)
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - common
+
+# ── 2. Router configuration (iptables, IP forwarding, inter-segment routes) ──
+- name: Configure routers
+  hosts: grp-routing
+  become: true
+  gather_facts: true
+  roles:
+    - router-config
+
+# ── 3. DMZ hosts ─────────────────────────────────────────────────────────────
+- name: Deploy vulnerable banking web application
+  hosts: web-banking
+  become: true
+  gather_facts: true
+  roles:
+    - web-banking-vuln
+
+- name: Deploy C2 simulation server
+  hosts: c2-server
+  become: true
+  gather_facts: true
+  roles:
+    - c2-server
+
+# ── 4. Corporate LAN hosts ───────────────────────────────────────────────────
+- name: Configure infected employee workstation
+  hosts: employee-ws
+  become: true
+  gather_facts: true
+  roles:
+    - employee-ws
+
+- name: Configure file server with ransomware artefacts
+  hosts: file-server
+  become: true
+  gather_facts: true
+  roles:
+    - file-server
+
+- name: Configure customer database server
+  hosts: db-server
+  become: true
+  gather_facts: true
+  roles:
+    - artifacts          # deploys synthetic DB seed data
+
+# ── 5. Security-tools hosts ──────────────────────────────────────────────────
+- name: Deploy SIEM (Wazuh + OpenSearch)
+  hosts: siem
+  become: true
+  gather_facts: true
+  roles:
+    - siem
+
+- name: Deploy DFIR analyst workstation
+  hosts: analyst-host
+  become: true
+  gather_facts: true
+  roles:
+    - forensics-host
+    - artifacts          # deploys forensic-bundle and report templates
+
+- name: Deploy MISP CTI platform
+  hosts: cti
+  become: true
+  gather_facts: true
+  roles:
+    - cti-misp
+
+# ── 6. Red-team host ─────────────────────────────────────────────────────────
+- name: Configure Kali red-team workstation
+  hosts: kali
+  become: true
+  gather_facts: true
+  roles:
+    - kali-redteam
+    - artifacts          # deploys phishing artefacts and handout templates

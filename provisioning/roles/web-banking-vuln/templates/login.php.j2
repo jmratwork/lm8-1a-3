@@ -1,0 +1,72 @@
+<?php
+// ============================================================
+// NG-SOC LM8 – Exercise 4 Training Artefact
+// DELIBERATELY VULNERABLE PHP login page (SQL Injection)
+// MITRE ATT&CK: T1190 (Exploit Public-Facing Application)
+//
+// VULNERABILITIES (intentional – educational sandbox only):
+//   1. SQL Injection: username field not sanitised
+//      Payload: ' OR '1'='1'--
+//   2. Weak admin credentials: admin / admin123
+//   3. No CSRF protection
+//   4. Error messages leak database structure
+// ============================================================
+
+require_once 'db.php';
+
+$error = '';
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    // VULNERABILITY: Direct string concatenation – SQL Injectable
+    $query = "SELECT * FROM admin_users WHERE username = '$username' AND password = '$password'";
+
+    $result = $conn->query($query);
+
+    if ($result && $result->num_rows > 0) {
+        $user = $result->fetch_assoc();
+        session_start();
+        $_SESSION['user'] = $user['username'];
+        $_SESSION['role'] = $user['role'];
+        header('Location: dashboard.php');
+        exit;
+    } else {
+        // VULNERABILITY: Error reveals query structure
+        $error = "Login failed. Query executed: " . htmlspecialchars($query);
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SecureBank Online – Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="login-container">
+    <div class="bank-logo">
+        <h1>🏦 SecureBank Online</h1>
+        <p class="tagline">Your trusted financial partner</p>
+    </div>
+    <form method="POST" action="login.php" class="login-form">
+        <?php if ($error): ?>
+            <div class="error-box"><?= $error ?></div>
+        <?php endif; ?>
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter password" required>
+        </div>
+        <button type="submit" class="btn-login">Sign In</button>
+    </form>
+    <p class="footer-note">© 2025 SecureBank (Fictional Training Environment)</p>
+</div>
+</body>
+</html>

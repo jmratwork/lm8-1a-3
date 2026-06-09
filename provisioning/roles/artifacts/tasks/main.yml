@@ -1,0 +1,213 @@
+---
+# Role: artifacts
+# Deploys synthetic artefact bundles, report templates, and student handout files
+# to the appropriate hosts. Applied to: analyst-host, db-server, kali.
+
+- name: Create artifacts base directory on host
+  ansible.builtin.file:
+    path: /opt/ngsoc-artifacts
+    state: directory
+    mode: "0755"
+
+# ── Forensic bundle (analyst-host only) ──────────────────────────────────────
+- name: Deploy forensic artefact bundle (Activity 2.0.3)
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/opt/ngsoc-artifacts/forensic-bundle/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: "forensic-bundle/wazuh-alerts-ex2.json",        dest: "wazuh-alerts-ex2.json" }
+    - { src: "forensic-bundle/endpoint-process-list.txt",    dest: "endpoint-process-list.txt" }
+    - { src: "forensic-bundle/netstat-employee-ws.txt",      dest: "netstat-employee-ws.txt" }
+    - { src: "forensic-bundle/web-banking-access.log",       dest: "web-banking-access.log" }
+    - { src: "forensic-bundle/file-metadata.txt",            dest: "file-metadata.txt" }
+    - { src: "forensic-bundle/timeline-clues.txt",           dest: "timeline-clues.txt" }
+  when: inventory_hostname == "analyst-host"
+  ignore_errors: true
+
+- name: Create forensic bundle directory on analyst-host
+  ansible.builtin.file:
+    path: /opt/ngsoc-artifacts/forensic-bundle
+    state: directory
+    mode: "0755"
+  when: inventory_hostname == "analyst-host"
+
+# ── Phishing artefacts (kali only, for Activity 2.0.1 instructor delivery) ───
+- name: Create phishing artefacts directory
+  ansible.builtin.file:
+    path: /opt/ngsoc-artifacts/phishing
+    state: directory
+    mode: "0755"
+  when: inventory_hostname == "kali"
+
+- name: Deploy phishing simulation artefacts
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/opt/ngsoc-artifacts/phishing/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: "phishing/phishing-email.eml",          dest: "phishing-email.eml" }
+    - { src: "phishing/phishing-sms.txt",            dest: "phishing-sms.txt" }
+    - { src: "phishing/phishing-call-script.txt",    dest: "phishing-call-script.txt" }
+    - { src: "phishing/suspicious-attachment.txt",   dest: "suspicious-attachment.txt" }
+  when: inventory_hostname == "kali"
+  ignore_errors: true
+
+# ── Ransomware tabletop materials (analyst-host only, for Exercise 5) ─────────
+- name: Create ransomware tabletop directory
+  ansible.builtin.file:
+    path: /opt/ngsoc-artifacts/ex5-ransomware
+    state: directory
+    mode: "0755"
+  when: inventory_hostname == "analyst-host"
+
+- name: Deploy Exercise 5 tabletop scenario brief
+  ansible.builtin.copy:
+    src: "ex5-ransomware/tabletop-scenario.txt"
+    dest: "/opt/ngsoc-artifacts/ex5-ransomware/tabletop-scenario.txt"
+    mode: "0644"
+  when: inventory_hostname == "analyst-host"
+  ignore_errors: true
+
+# ── Student handout templates (all applicable hosts) ─────────────────────────
+- name: Create student handouts directory
+  ansible.builtin.file:
+    path: "/home/{{ student_user }}/handouts"
+    state: directory
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"
+    mode: "0755"
+
+- name: Deploy phishing triage note template
+  ansible.builtin.copy:
+    dest: "/home/{{ student_user }}/handouts/phishing-triage-note.md"
+    mode: "0644"
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"
+    content: |
+      # Phishing Triage Note
+      **Analyst:** [Name] | **Date/Time (UTC):** [YYYY-MM-DDTHH:MM:SSZ] | **Case:** [ID]
+
+      ## Lure Theme
+      [Describe the social engineering theme – e.g., "payroll update", "account verification"]
+
+      ## Likely Intent
+      [Credential theft / malware delivery / financial fraud]
+
+      ## Immediate Risk to Organisation
+      [Who is targeted? What would be compromised if a user clicked?]
+
+      ## Extracted Observables
+      | Type | Value | Source Channel | Reliability |
+      |---|---|---|---|
+      | Sender domain | | Email | |
+      | URL | | Email | |
+      | Attachment name | | Email | |
+      | Attachment hash | | Email | |
+      | Short URL | | SMS | |
+      | Phone number | | SMS/Voice | |
+
+      ## Recommended Response Actions
+      - [ ] Notify affected user(s)
+      - [ ] Email gateway rule: block sender domain [DOMAIN]
+      - [ ] URL blocking: [URL]
+      - [ ] Awareness message to staff: [draft or N/A]
+      - [ ] Escalate to IR: Yes / No
+
+      ## Escalation Decision
+      **Escalate?** Yes / No
+      **Rationale:** [Explain your decision]
+
+- name: Deploy decision log template
+  ansible.builtin.copy:
+    dest: "/home/{{ student_user }}/handouts/decision-log.md"
+    mode: "0644"
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"
+    content: |
+      # Incident Decision Log
+      **Incident ID:** [ID] | **Date:** [YYYY-MM-DD] | **Coordinator:** [Name]
+
+      | # | Time (UTC) | Decision | Rationale | Made By | Outcome |
+      |---|---|---|---|---|---|
+      | 1 | | | | | |
+      | 2 | | | | | |
+      | 3 | | | | | |
+
+- name: Deploy SITREP template
+  ansible.builtin.copy:
+    dest: "/home/{{ student_user }}/handouts/sitrep-template.md"
+    mode: "0644"
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"
+    content: |
+      # Situation Report (SITREP)
+      **Classification:** RESTRICTED (Training) | **Reference:** [SITREP-001]
+      **Date/Time (UTC):** [YYYY-MM-DDTHH:MM:SSZ]
+      **Prepared by:** [Role / Name]
+
+      ## Current Situation
+      [2–3 sentences: what is happening right now]
+
+      ## Impact Assessment
+      - Systems affected: [list]
+      - Data at risk: [describe]
+      - Business services impacted: [describe]
+
+      ## Actions Taken
+      | Time | Action | By |
+      |---|---|---|
+      | | | |
+
+      ## Immediate Next Steps
+      1.
+      2.
+      3.
+
+      ## Key Risks
+      - [Risk 1 and mitigation]
+      - [Risk 2 and mitigation]
+
+      ## Next SITREP Due
+      [Time and responsible person]
+
+- name: Deploy handover notes template
+  ansible.builtin.copy:
+    dest: "/home/{{ student_user }}/handouts/handover-notes.md"
+    mode: "0644"
+    owner: "{{ student_user }}"
+    group: "{{ student_user }}"
+    content: |
+      # Shift Handover Notes
+      **Outgoing:** [Name / Role] | **Incoming:** [Name / Role]
+      **Handover Time (UTC):** [YYYY-MM-DDTHH:MM:SSZ]
+
+      ## Incident Status
+      - Incident ID: [ID]
+      - Current Phase: [Detection / Containment / Eradication / Recovery / Post-Incident]
+      - Overall Status: [ACTIVE / CONTAINED / MONITORING]
+
+      ## What Is Known
+      [Facts established with evidence]
+
+      ## What Is Unknown / Under Investigation
+      [Open questions and who is investigating]
+
+      ## Actions Completed This Shift
+      | Time | Action | Result |
+      |---|---|---|
+
+      ## Actions Required Next Shift (Prioritised)
+      1. [URGENT] [action]
+      2. [HIGH] [action]
+      3. [NORMAL] [action]
+
+      ## Open Tickets / Tasks
+      | Task | Owner | Due | Status |
+      |---|---|---|---|
+
+      ## Important Contacts
+      - IR Coordinator: [name / channel]
+      - IT Operations on-call: [name / number]
+      - Management contact: [name / number]
+      - Legal / Compliance: [name / number]

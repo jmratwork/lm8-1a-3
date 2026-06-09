@@ -1,0 +1,39 @@
+<?php
+session_start();
+if (!isset($_SESSION['user'])) {
+    header('Location: login.php');
+    exit;
+}
+require_once 'db.php';
+
+// Fetch all accounts – no pagination, no authorisation check (IDOR finding)
+$accounts = $conn->query("SELECT id, username, full_name, account_number, balance, email FROM accounts LIMIT 50");
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SecureBank Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="dashboard">
+    <h2>Admin Dashboard – Welcome <?= htmlspecialchars($_SESSION['user']) ?> (<?= $_SESSION['role'] ?>)</h2>
+    <p><a href="login.php">Logout</a></p>
+    <h3>Customer Accounts (first 50 records)</h3>
+    <table class="data-table">
+        <tr><th>ID</th><th>Username</th><th>Full Name</th><th>Account No.</th><th>Balance</th><th>Email</th></tr>
+        <?php while ($row = $accounts->fetch_assoc()): ?>
+        <tr>
+            <td><?= $row['id'] ?></td>
+            <td><?= htmlspecialchars($row['username']) ?></td>
+            <td><?= htmlspecialchars($row['full_name']) ?></td>
+            <td><?= htmlspecialchars($row['account_number']) ?></td>
+            <td>£<?= number_format($row['balance'], 2) ?></td>
+            <td><?= htmlspecialchars($row['email']) ?></td>
+        </tr>
+        <?php endwhile; ?>
+    </table>
+</div>
+</body>
+</html>

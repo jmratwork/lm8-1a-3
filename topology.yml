@@ -1,0 +1,368 @@
+---
+# ============================================================================
+# NG-SOC Learning Module 8 – Incident Response and Forensics (Sub Case 1a)
+# CyberRangeCZ/KYPO Sandbox Topology Definition  v1.0
+# Responsible Partner: FUNITEC  |  Project: NG-SOC (GA 101145874)
+# ============================================================================
+#
+# RESOURCE FOOTPRINT (per sandbox instance):
+#   Routers : 2 × standard.small  →  2 vCPU,  4 GB RAM
+#   Hosts   : 3 × standard.small  →  3 vCPU,  6 GB RAM
+#             3 × standard.medium →  3 vCPU, 12 GB RAM
+#             3 × standard.large  →  6 vCPU, 48 GB RAM
+#   TOTAL   : ~14 vCPU, ~70 GB RAM
+#
+#   Cost-reduction option: downgrade siem → standard.medium (Wazuh only, no
+#   OpenSearch heap tuning) and cti → standard.medium (MISP with MariaDB
+#   on same host). Reduce kali → standard.medium (Metasploit still usable).
+#   Revised total: ~10 vCPU, ~38 GB RAM.
+#
+# CLOUD-SIDE PREREQUISITES (verify before deployment):
+#   1. Images exist: debian-12-x86_64, ubuntu-noble-x86_64, kali-2020.4
+#      Substitutes: ubuntu-focal-x86_64 (Ubuntu 20.04), kali-rolling
+#   2. Flavours: standard.small / standard.medium / standard.large
+#      Substitutes per cloud: m1.small / m1.medium / m1.large
+#   3. Management network: 100.100.100.0/24 (reserved – do not reuse)
+#   4. All CIDRs below are disjoint and non-overlapping with management
+# ============================================================================
+
+name: ngsoc-lm8-subcase1a
+
+# ─── NETWORKS ────────────────────────────────────────────────────────────────
+#
+#  10.10.10.0/24  net-transit   Router backbone (not user-visible)
+#  10.10.20.0/24  net-dmz       DMZ: banking web app + hidden C2
+#  10.10.30.0/24  net-corp      Corporate LAN: employee WS + data servers
+#  10.10.40.0/24  net-security  Security tools: SIEM + forensics + MISP
+#  10.10.50.0/24  net-redteam   Red-team: Kali workstation
+#
+networks:
+  # Transit backbone – interconnects the two routers only; never exposed to
+  # trainees (no user-accessible nodes live here)
+  - name: net-transit
+    cidr: 10.10.10.0/24
+    accessible_by_user: false
+
+  # DMZ – simulated internet-facing segment; hosts the vulnerable banking web
+  # application (Exercise 4) and the hidden C2 server (Exercises 1 & 3).
+  # Trainees can reach this segment from kali (red-team) and analyst-host.
+  - name: net-dmz
+    cidr: 10.10.20.0/24
+    accessible_by_user: true
+
+  # Corporate LAN – internal workstations and data servers; NOT directly
+  # accessible via user VPN. Trainees interact with these hosts only through
+  # the SIEM and analyst-host tooling, which mirrors a real SOC workflow.
+  - name: net-corp
+    cidr: 10.10.30.0/24
+    accessible_by_user: false
+
+  # Security-tools segment – SIEM, forensics workstation, MISP CTI platform.
+  # This is the primary analyst workspace; trainees SSH/console here for all
+  # blue-team exercises (Exercises 1, 2, 3).
+  - name: net-security
+    cidr: 10.10.40.0/24
+    accessible_by_user: true
+
+  # Red-team segment – isolated Kali host for Exercise 4 (pen test) and the
+  # spear-phishing artefact delivery (Activity 2.0.1). Separate segment
+  # prevents accidental lateral movement into security-tools during the exercise.
+  - name: net-redteam
+    cidr: 10.10.50.0/24
+    accessible_by_user: true
+
+# ─── ROUTERS ─────────────────────────────────────────────────────────────────
+routers:
+  # Perimeter router: gateway between transit backbone and DMZ.
+  # Provisioning configures iptables to simulate an internet-edge firewall:
+  # - Allows inbound HTTP/HTTPS to web-banking (10.10.20.10)
+  # - Blocks all other unsolicited inbound connections
+  # - NATs outbound traffic from internal segments (for simulated internet reach)
+  - name: router-perimeter
+    flavor: standard.small
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+
+  # Internal router: connects all internal segments via the transit backbone.
+  # Provisioning configures inter-segment routing:
+  # - net-corp ↔ net-security (allows analyst-host to reach corp hosts for forensics)
+  # - net-redteam → net-dmz (allows kali to reach web-banking for pen test)
+  # - Blocks net-redteam → net-corp and net-redteam → net-security (scope control)
+  - name: router-internal
+    flavor: standard.small
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+
+# ─── HOSTS ───────────────────────────────────────────────────────────────────
+hosts:
+
+  # ── DMZ (10.10.20.x) ────────────────────────────────────────────────────
+  #
+  # Exercises 2 & 4 | ECSF roles: Pen Tester, Incident Responder
+  # Vulnerable banking web application (PHP + MySQL backend).
+  # Intentional weaknesses (educational simulation only):
+  #   - SQL Injection in /login.php (bypasses auth, exposes customer table)
+  #   - Admin account: username=admin, password=admin123 (brute-forceable)
+  #   - /backup/ directory publicly accessible (information disclosure)
+  # MITRE ATT&CK: T1190 (Exploit Public-Facing Application), T1078 (Valid Accounts)
+  - name: web-banking
+    flavor: standard.medium
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+
+  # Exercises 1 & 3 | ECSF roles: SOC Analyst, CTI Analyst
+  # Simulates the Black Falcon C2 / banking-malware infrastructure.
+  # Runs a lightweight listener (netcat + Python HTTP) on port 4444 that logs
+  # all incoming connections (from employee-ws beacon) for SIEM to detect.
+  # hidden: true → not shown in REP topology visualisation; students must
+  # discover the IP address (10.10.20.20) through log and alert analysis.
+  # MITRE ATT&CK: T1071.001 (Application Layer Protocol – Web), T1102 (C2 via Web)
+  - name: c2-server
+    flavor: standard.small
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    hidden: true
+
+  # ── Corporate LAN (10.10.30.x) ───────────────────────────────────────────
+  #
+  # Exercise 1 | ECSF role: SOC Analyst
+  # Infected employee workstation. Provisioning installs a cron job
+  # (/etc/cron.d/svc-update) that runs /opt/c2-beacon/beacon.sh every 5 min:
+  #   - Opens TCP connection to c2-server (10.10.20.20:4444)
+  #   - Writes syslog entry: "svc_update: [WARN] possible Trojan infection"
+  # Wazuh agent forwards these events to siem; custom rule 100001 fires.
+  # MITRE ATT&CK: T1071.001 (C2 Beaconing), T1053.005 (Scheduled Task/Job)
+  - name: employee-ws
+    flavor: standard.small
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+
+  # Exercises 2 & 5 | ECSF roles: Incident Responder, IR Coordinator
+  # Internal file server with synthetic customer documents.
+  # Pre-seeded ransomware artefacts (all synthetic):
+  #   - /srv/data/customers.csv       (10,000-row synthetic dataset)
+  #   - /srv/data/README-RANSOM.txt   (ransom note, fictional attacker)
+  #   - /srv/data/*.locked            (10 synthetic encrypted-file stubs)
+  #   - /var/log/encryption-events.log (simulated encryption alert log)
+  # Wazuh agent forwards file-integrity monitoring events to siem.
+  # MITRE ATT&CK: T1486 (Data Encrypted for Impact)
+  - name: file-server
+    flavor: standard.small
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+
+  # Exercises 2 & 4 | ECSF roles: Incident Responder, Pen Tester
+  # Customer database server (MySQL). Synthetic schema:
+  #   - database 'bankdb', table 'accounts' (10,000 synthetic customer rows)
+  #   - database 'transactions' table (5,000 synthetic transaction rows)
+  # Accessible from web-banking app user (password in /srv/config/db.php).
+  # standard.medium needed for MySQL + Wazuh agent overhead.
+  # MITRE ATT&CK: T1005 (Data from Local System), T1041 (Exfiltration Over C2)
+  - name: db-server
+    flavor: standard.medium
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+
+  # ── Security Tools (10.10.40.x) ──────────────────────────────────────────
+  #
+  # Exercise 1 | ECSF role: SOC Analyst
+  # SIEM: Wazuh manager + OpenSearch + OpenSearch Dashboards (Kibana-compatible).
+  # Pre-loaded synthetic alert dataset for Module 8 scenario:
+  #   - Wazuh rule 100001: outbound connection to known C2 IP
+  #   - Wazuh rule 100002: possible Trojan process detected on endpoint
+  #   - Wazuh rule 100003: SMB lateral movement pattern
+  #   - Wazuh rule 100004: ransomware file-extension change detected
+  # standard.large required: OpenSearch needs ≥4 GB JVM heap.
+  - name: siem
+    flavor: standard.large
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+
+  # Exercise 2 | ECSF role: Incident Responder
+  # Forensics and DFIR analyst workstation. Installed tools:
+  #   - Velociraptor (server + client; agents auto-enrolled on corp hosts)
+  #   - The Sleuth Kit (tsk) + Autopsy CLI
+  #   - Volatility 3 (memory forensics)
+  #   - tcpdump, tshark (network capture)
+  #   - hashdeep, sha256sum (hash verification / chain-of-custody)
+  #   - strings, binwalk, foremost (binary analysis)
+  # Also hosts the express forensic report artefact bundle (Activity 2.0.3).
+  - name: analyst-host
+    flavor: standard.medium
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+
+  # Exercise 3 | ECSF role: CTI Analyst
+  # MISP (Malware Information Sharing Platform) instance.
+  # Pre-loaded MISP event "Black Falcon" with synthetic IoCs:
+  #   - C2 IP: 10.10.20.20 (corroborates Exercise 1 alert)
+  #   - C2 domain: update-svc.blackfalcon-sim.internal
+  #   - Payload MD5: aabbccdd11223344aabbccdd11223344
+  #   - Stage-2 SHA256: deadbeef00112233445566778899aabb...
+  #   - Phishing subjects: "Urgent: Q4 Wire Transfer Authorisation Required"
+  #                        "Security Alert: Verify Your Banking Credentials"
+  #   - MITRE tag: T1566.001, T1071.001, T1486
+  # standard.large required: MISP + MariaDB + Redis stack.
+  - name: cti
+    flavor: standard.large
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+
+  # ── Red Team (10.10.50.x) ────────────────────────────────────────────────
+  #
+  # Exercise 4 | ECSF role: Penetration Tester / Red Team Operator
+  # Kali Linux pen-test workstation. Pre-installed tools:
+  #   - nmap (network reconnaissance)
+  #   - metasploit-framework (exploitation)
+  #   - sqlmap (automated SQL injection)
+  #   - nikto (web vulnerability scanner)
+  #   - hydra (brute-force login)
+  #   - gobuster / dirb (directory enumeration)
+  #   - wireshark / tcpdump (traffic analysis)
+  # Also hosts spear-phishing simulation artefacts (Activity 2.0.1):
+  #   - /home/kali/phishing/ (email EML, SMS txt, call script, attachment)
+  # standard.large required: Metasploit database + concurrent scans.
+  # NOTE: If kali-2020.4 is unavailable in the target cloud, see
+  #       provisioning/roles/kali-redteam/README.md for the Ubuntu fallback.
+  - name: kali
+    flavor: standard.large
+    base_box:
+      image: kali-2020.4
+      mgmt_user: kali
+
+# ─── NET MAPPINGS ─────────────────────────────────────────────────────────────
+# Rules: IP must be within the network CIDR; .1 is router gateway (reserved);
+# .255 is broadcast (reserved). Host IPs start at .10 for readability.
+net_mappings:
+
+  # DMZ (10.10.20.0/24)
+  - host: web-banking
+    network: net-dmz
+    ip: 10.10.20.10
+
+  - host: c2-server
+    network: net-dmz
+    ip: 10.10.20.20
+
+  # Corporate LAN (10.10.30.0/24)
+  - host: employee-ws
+    network: net-corp
+    ip: 10.10.30.10
+
+  - host: file-server
+    network: net-corp
+    ip: 10.10.30.20
+
+  - host: db-server
+    network: net-corp
+    ip: 10.10.30.30
+
+  # Security Tools (10.10.40.0/24)
+  - host: siem
+    network: net-security
+    ip: 10.10.40.10
+
+  - host: analyst-host
+    network: net-security
+    ip: 10.10.40.20
+
+  - host: cti
+    network: net-security
+    ip: 10.10.40.30
+
+  # Red Team (10.10.50.0/24)
+  - host: kali
+    network: net-redteam
+    ip: 10.10.50.10
+
+# ─── ROUTER MAPPINGS ─────────────────────────────────────────────────────────
+router_mappings:
+
+  # router-perimeter: transit backbone (.1) + DMZ gateway (.1)
+  - router: router-perimeter
+    network: net-transit
+    ip: 10.10.10.1
+
+  - router: router-perimeter
+    network: net-dmz
+    ip: 10.10.20.1
+
+  # router-internal: transit backbone (.2) + internal segment gateways
+  - router: router-internal
+    network: net-transit
+    ip: 10.10.10.2
+
+  - router: router-internal
+    network: net-corp
+    ip: 10.10.30.1
+
+  - router: router-internal
+    network: net-security
+    ip: 10.10.40.1
+
+  - router: router-internal
+    network: net-redteam
+    ip: 10.10.50.1
+
+# ─── GROUPS ───────────────────────────────────────────────────────────────────
+# Custom groups use the prefix "grp-" to avoid conflicting with the following
+# reserved platform groups (do NOT redefine):
+#   management, routers, hosts, ssh_nodes, winrm_nodes, user_accessible_nodes,
+#   hidden_hosts, windows_hosts, monitor-os, monitor-icmp
+groups:
+  # DMZ segment – provisioned by roles: web-banking-vuln, c2-server
+  - name: grp-dmz
+    nodes:
+      - web-banking
+      - c2-server
+
+  # Corporate LAN – provisioned by roles: employee-ws, file-server, db-server, common
+  - name: grp-corp
+    nodes:
+      - employee-ws
+      - file-server
+      - db-server
+
+  # Security tools – provisioned by roles: siem, forensics-host, cti-misp
+  - name: grp-security
+    nodes:
+      - siem
+      - analyst-host
+      - cti
+
+  # Red-team – provisioned by roles: kali-redteam
+  - name: grp-redteam
+    nodes:
+      - kali
+
+  # All routers – provisioned by role: common (routing config, iptables)
+  - name: grp-routing
+    nodes:
+      - router-perimeter
+      - router-internal
+
+# ─── MONITORING TARGETS ───────────────────────────────────────────────────────
+# Uncomment to enable platform-level ICMP reachability monitoring.
+# The platform auto-populates the "monitor-icmp" Ansible group from this list.
+#
+# monitoring_targets:
+#   - type: monitor-icmp
+#     hosts:
+#       - web-banking
+#       - employee-ws
+#       - file-server
+#       - db-server
+#       - siem
+#       - analyst-host
+#       - cti
+#       - kali

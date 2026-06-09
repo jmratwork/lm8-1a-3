@@ -1,0 +1,20 @@
+---
+# Variables specific to the security-tools segment (grp-security)
+
+# Wazuh manager address (for agent registration)
+wazuh_manager_ip: "10.10.40.10"
+wazuh_manager_port: 1514
+wazuh_api_port: 55000
+
+# OpenSearch / Kibana (Wazuh dashboard)
+opensearch_heap_size: "2g"
+wazuh_dashboard_port: 5601
+
+# MISP
+misp_base_url: "https://10.10.40.30"
+misp_admin_email: "admin@ngsoc-lm8.internal"
+misp_org_name: "NGSOC-FUNI"
+
+# Velociraptor
+velociraptor_config_path: "/etc/velociraptor"
+velociraptor_datastore: "/opt/velociraptor/datastore"

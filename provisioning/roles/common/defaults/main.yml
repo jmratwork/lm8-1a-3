@@ -1,0 +1,4 @@
+---
+common_timezone: "UTC"
+common_locale: "en_GB.UTF-8"
+common_hostname_in_hosts: true

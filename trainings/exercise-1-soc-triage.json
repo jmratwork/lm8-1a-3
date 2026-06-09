@@ -1,0 +1,90 @@
+{
+  "title": "Exercise 1 – Suspicious Network Activity (SOC Analyst Triage)",
+  "description": "Exercise 1 of the NG-SOC Learning Module 8 – Incident Response and Forensics (Sub Case 1a). Role: SOC Analyst Tier 1. Phase: Detection & Analysis.",
+  "levels": [
+    {
+      "type": "InfoLevel",
+      "title": "Scenario Brief",
+      "content": "**Exercise 1 – Suspicious Network Activity**\n\nIt is 02:13 UTC. You are the on-duty SOC Analyst Tier 1 at a financial institution. Your SIEM has just fired an alert:\n\n- **Rule 100001**: Outbound TCP connection from `employee-ws` (10.10.30.10) to IP `10.10.20.20:4444` — *Known Black Falcon C2 infrastructure*\n- **Rule 100002**: Endpoint agent on `employee-ws` logs: `\"svc_update: WARN possible Trojan infection — process /tmp/.svc_update\"`\n\nNo user has reported any problem. Shift handover is in 2 hours.\n\nYou have access to:\n- **SIEM** (Wazuh Dashboard): http://siem.ngsoc-lm8.internal:5601\n- **Endpoint logs**: via Wazuh agent on employee-ws\n\nYour job is to triage this alert and decide what to do next.\n\n> **Note**: Record all your analysis as if writing an initial incident report log. Include timestamps."
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 1 – Alert Analysis and IoC Identification",
+      "content": "**Access the SIEM** (http://10.10.40.10:5601) and examine the alerts for `employee-ws`.\n\n**Analyse the following and document your findings:**\n\n1. What Wazuh rule IDs have fired? What is each rule's severity level?\n2. List all Indicators of Compromise (IoCs) visible in the alert data:\n   - Source IP and port\n   - Destination IP and port\n   - Suspicious process name\n   - Any suspicious domain names in DNS logs\n3. Does the combination of SIEM alert + endpoint log entry suggest a **true positive** or could this be a false positive? Justify your answer with evidence.\n4. What immediate containment step would you take **while continuing to analyse**?\n\n**Expected IoCs**: IP 10.10.20.20, port 4444, process `/tmp/.svc_update`, domain `update-svc.blackfalcon-sim.internal`\n\n> Submit your analysis as a log entry with timestamps.",
+      "answer": "Student analysis must identify: IP 10.10.20.20:4444 as destination, process /tmp/.svc_update, rule IDs 100001 and 100002 both corroborate each other making this a likely true positive. Immediate containment: isolate host or block outbound to 10.10.20.20.",
+      "hints": [
+        {
+          "title": "Finding IoCs in Wazuh",
+          "content": "In the Wazuh Dashboard, go to Security Events, filter by agent.name = 'employee-ws'. Look at the data.srcip, data.dstip, and data.process fields."
+        },
+        {
+          "title": "True positive vs false positive",
+          "content": "Multiple independent sources (SIEM network rule AND endpoint agent log) both flagging the same host at the same time significantly increases the probability of a true positive."
+        }
+      ],
+      "mitre_attack_techniques": ["T1071.001", "T1053.005"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 2 – Scope & Severity Assessment",
+      "content": "Given the alert confirms a likely true positive:\n\n1. **Scope**: Is `employee-ws` connected to any critical systems? Check if it has access to the file server, database, or SIEM network segment. What is the blast radius if malware has full access to this host?\n2. **Severity classification**: Using a P1/P2/P3/P4 scale (P1 = Critical, P4 = Informational), what is your classification? Justify with:\n   - Type of malware suspected (banking trojan, based on C2 IP reputation)\n   - Criticality of the affected asset\n   - Evidence of lateral movement or data exfiltration?\n3. Does this trigger your organisation's **incident response plan**? At what threshold?",
+      "answer": "High/Critical severity (P1 or P2). Banking trojan on employee workstation with access to corporate LAN (10.10.30.0/24). No direct evidence of lateral movement yet, but proximity to file-server and db-server is a risk factor. IR plan should be triggered.",
+      "hints": [
+        {
+          "title": "Severity scale guidance",
+          "content": "A confirmed banking malware infection on a host with access to financial data is typically P1 (Critical) or P2 (High). The absence of confirmed exfiltration does not reduce severity – the risk is present."
+        }
+      ],
+      "mitre_attack_techniques": ["T1071.001"]
+    },
+    {
+      "type": "TrainingLevel",
+      "title": "Task 3 – Immediate Actions & Escalation",
+      "content": "**Document the immediate actions you take during the Detection phase:**\n\n1. Would you isolate `employee-ws` from the network immediately? Why or why not?\n2. Would you initiate an on-demand anti-malware scan? What tool would you use?\n3. Would you search for similar indicators on other hosts? How? (Hint: Wazuh allows cross-host alert correlation.)\n4. **Escalation decision**: Should this be escalated to the CSIRT/IR team? Draft a brief escalation ticket (email or ticket update format) covering:\n   - What was detected (summary)\n   - Analysis findings\n   - Actions taken so far\n   - What you need from IR team\n\n> Your escalation note will be used by the Incident Responder in Exercise 2.",
+      "answer": "Yes, isolate employee-ws (network quarantine). Initiate Wazuh FIM scan. Search for rule 100001 hits on other agents. Escalate to CSIRT with: alert details, IoCs (10.10.20.20:4444, /tmp/.svc_update), severity justification, containment actions taken.",
+      "hints": [
+        {
+          "title": "Network isolation without loss of evidence",
+          "content": "Isolating a host from the network stops further C2 communication but preserves volatile memory and running processes. In Wazuh, you can push an active response to block the offending IP rather than a full network disconnect, allowing continued monitoring."
+        },
+        {
+          "title": "Cross-host hunting in Wazuh",
+          "content": "In the SIEM Dashboard, search for rule.id:100001 across all agents. This shows if other workstations are also beaconing to 10.10.20.20."
+        }
+      ],
+      "mitre_attack_techniques": ["T1071.001", "T1053.005"]
+    },
+    {
+      "type": "AssessmentLevel",
+      "title": "Exercise 1 – Knowledge Check",
+      "questions": [
+        {
+          "type": "multiple_choice",
+          "text": "Which combination of evidence most strongly indicates a TRUE POSITIVE malware infection?",
+          "options": [
+            "Single SIEM alert on network traffic only",
+            "Endpoint agent log entry only",
+            "Both SIEM network alert AND endpoint agent log entry from the same host at the same time",
+            "User report of slow system performance"
+          ],
+          "correct_answer": "Both SIEM network alert AND endpoint agent log entry from the same host at the same time"
+        },
+        {
+          "type": "multiple_choice",
+          "text": "Which MITRE ATT&CK technique best describes the periodic outbound connections from employee-ws to the C2 server?",
+          "options": [
+            "T1190 – Exploit Public-Facing Application",
+            "T1071.001 – Application Layer Protocol (Web Protocols) for C2",
+            "T1486 – Data Encrypted for Impact",
+            "T1566.001 – Spearphishing Attachment"
+          ],
+          "correct_answer": "T1071.001 – Application Layer Protocol (Web Protocols) for C2"
+        },
+        {
+          "type": "free_form",
+          "text": "List THREE IoCs you identified in this exercise and state what type each is (IP, domain, file hash, process name, etc.)."
+        }
+      ]
+    }
+  ]
+}

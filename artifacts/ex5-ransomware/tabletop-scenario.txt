@@ -1,0 +1,134 @@
+================================================================================
+SYNTHETIC TRAINING ARTEFACT – Exercise 5 Ransomware Tabletop Scenario Brief
+NG-SOC LM8 Sub Case 1a – Assessed Activity 2.0.2 (Collaborative Response Chain)
+Role: IR Coordinator
+================================================================================
+
+EXERCISE 5 – RANSOMWARE CRISIS TABLETOP
+"Operation Black Friday"
+Classification: TRAINING USE ONLY | Date: 2026-06-08
+
+────────────────────────────────────────────────────────────────────────────────
+PART 1 – SCENARIO BACKGROUND
+────────────────────────────────────────────────────────────────────────────────
+
+Organisation: SecureBank Ltd
+Sector: Financial services (essential entity under NIS2)
+Date/Time of first alert: Tuesday, 08 June 2026 at 14:20 UTC
+
+The following sequence of events has been confirmed:
+
+TIMELINE (reconstructed by IR team prior to tabletop):
+  08 Jun, 09:14 UTC  Spear-phishing email received by J.Smith (Finance)
+                     Attachment: Q4-wire-transfer-auth.docm (macro-enabled)
+  08 Jun, ~10:00 UTC  Macro executed by user (opened on employee-ws)
+  08 Jun, 02:13 UTC  First C2 beacon detected in SIEM [NOTE: 02:13 is the
+                     simulated "2 AM" night shift – represents low staffing]
+  08 Jun, 02:14 UTC  Lateral movement: employee-ws → file-server (SMB)
+  08 Jun, 02:15 UTC  Ransomware deployed: 47 files encrypted on /srv/data/
+  08 Jun, 02:16 UTC  Ransomware deployed on db-server; customer data accessed
+  08 Jun, 14:20 UTC  IT Operations escalates: file-server inaccessible
+  08 Jun, 14:35 UTC  CFO reports: client-facing services degraded
+
+NOTE: The 12-hour detection gap (02:15 → 14:20) is intentional for discussion.
+
+────────────────────────────────────────────────────────────────────────────────
+PART 2 – INJECT SEQUENCE (Instructor-delivered, 5-minute intervals)
+────────────────────────────────────────────────────────────────────────────────
+
+INJECT 1 (T+0, 14:35):
+  IT Operations: "We cannot access the file server. All files show .locked
+  extension. There is a README-RANSOM.txt on every share. The Samba service
+  is up but the files are useless."
+
+  [Students must: confirm incident, stand up IR team, make isolation decision]
+
+INJECT 2 (T+10, 14:45):
+  SOC Analyst: "SIEM shows this started at 14:20 TODAY — but I found older
+  alerts from 02:15 that weren't escalated. The on-call analyst last night
+  marked them as 'monitoring'."
+
+  [Students must: assess detection gap, handle alert fatigue issue carefully
+   without blame; discuss process improvement]
+
+INJECT 3 (T+20, 14:55):
+  CTI Analyst: "MISP Event #1001 – the ransom note text matches a known Black
+  Falcon variant. This group is known to exfiltrate data BEFORE encrypting.
+  The encryption is Phase 2."
+
+  [Students must: escalate from ransomware → potential data breach;
+   consider GDPR notification obligation; check for exfiltration evidence]
+
+INJECT 4 (T+30, 15:05):
+  Legal team: "Before you wipe anything, we need forensic evidence preserved.
+  We may be facing regulatory action. You CANNOT rebuild file-server yet."
+  CFO: "We need services back in 2 hours."
+
+  [Students must: resolve Legal vs. Operations conflict; sequence actions:
+   preserve evidence first, then contain, then rebuild]
+
+INJECT 5 (T+40, 15:15):
+  IT: "We checked db-server. Customer data was accessed at 02:16 – all 147
+  account records were SELECT'd. We don't know if it was exfiltrated."
+
+  [Students must: make GDPR breach notification decision; initiate
+   forensic analysis to determine exfiltration; notify DPO]
+
+INJECT 6 (T+50, 15:25):
+  Communications Director: "A journalist has called. They've heard about a
+  'major cyber attack' at SecureBank. What do we say?"
+
+  [Students must: draft holding statement; decide on proactive disclosure;
+   protect investigation integrity]
+
+────────────────────────────────────────────────────────────────────────────────
+PART 3 – DISCUSSION QUESTIONS (after all injects)
+────────────────────────────────────────────────────────────────────────────────
+
+1. DETECTION GAP: The attack ran for 12 hours undetected. What SPECIFIC process
+   and technical changes would have reduced this? (Target: <1 hour detection)
+
+2. CONTAINMENT CONFLICT: How did you resolve the Legal vs. Operations vs. CFO
+   conflict? What is the correct sequencing? (Evidence → Contain → Restore)
+
+3. NIS2 NOTIFICATION: Has the 24-hour early warning clock started? When does it
+   start – at first C2 beacon (02:15) or when you became aware (14:35)?
+
+4. GDPR BREACH: Is this a personal data breach? What are your obligations?
+   (147 account records accessed = customer PII = likely reportable breach)
+
+5. COLLABORATIVE CHAIN: Which of the 5 exercise roles contributed to which
+   phase of response? What would have failed without any one of them?
+
+────────────────────────────────────────────────────────────────────────────────
+PART 4 – RANSOM NOTE TEXT (as found on file-server)
+────────────────────────────────────────────────────────────────────────────────
+
+[Contents of /srv/data/README-RANSOM.txt]
+
+  YOUR FILES HAVE BEEN ENCRYPTED BY BLACK FALCON RANSOMWARE v2.1
+
+  All documents, databases, and backups on this system have been encrypted
+  using AES-256 with a unique key. Your data has also been exfiltrated to
+  our secure servers as a guarantee.
+
+  To receive your decryption key and prevent public disclosure of your data:
+  1. Do NOT attempt to restore from backup – we have deleted your shadow copies
+  2. Do NOT contact law enforcement – this will result in data publication
+  3. Transfer 15 BTC to wallet: 1A2B3C4D5E6F7G8H9I0J (SYNTHETIC/FICTITIOUS)
+  4. Contact us at: blackfalcon-support@bfcorp-sim.internal within 72 hours
+
+  PROOF OF DATA: We hold records including account numbers, balances,
+  sort codes, and transaction history for 147 customer accounts.
+
+  This message will self-delete after 72 hours.
+
+  --- BLACK FALCON RANSOMWARE GROUP ---
+
+================================================================================
+THIS RANSOM NOTE IS A SYNTHETIC TRAINING ARTEFACT.
+No real encryption occurred. No real data was exfiltrated.
+The BTC wallet address and email domain are entirely fictitious.
+Do NOT attempt to contact the email address or pay any ransom.
+NG-SOC LM8 Cyber Range | SecureBank Simulation Environment
+================================================================================

@@ -1,0 +1,149 @@
+---
+# Role: file-server
+# Deploys a file server with synthetic customer data and ransomware artefacts
+# (Exercises 2 & 5 – Incident Responder / IR Coordinator).
+# MITRE ATT&CK: T1486 (Data Encrypted for Impact), T1074 (Data Staged)
+
+- name: Install Samba for SMB share (simulates corporate file server)
+  ansible.builtin.apt:
+    name:
+      - samba
+      - attr
+    state: present
+
+- name: Create data directory
+  ansible.builtin.file:
+    path: "{{ file_server_share }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create synthetic customer CSV (10,000 rows synthetic data)
+  ansible.builtin.copy:
+    dest: "{{ file_server_share }}/customers.csv"
+    content: |
+      id,first_name,last_name,account_number,sort_code,balance,email,address,dob
+      1,Alice,Johnson,GB00NGSOC00000001,20-45-67,15234.50,alice.j@ngsoc-sim.internal,"1 Training St, London",1985-03-12
+      2,Bob,Williams,GB00NGSOC00000002,20-45-67,8921.00,bob.w@ngsoc-sim.internal,"2 Sandbox Ave, Manchester",1979-07-22
+      3,Carol,Davies,GB00NGSOC00000003,20-45-67,42100.75,carol.d@ngsoc-sim.internal,"3 Cyber Rd, Edinburgh",1991-11-05
+      4,David,Brown,GB00NGSOC00000004,20-45-67,1205.30,david.b@ngsoc-sim.internal,"4 KYPO Lane, Cardiff",1967-09-18
+      5,Emma,Taylor,GB00NGSOC00000005,20-45-67,99999.99,emma.t@ngsoc-sim.internal,"5 NGSOC Blvd, Bristol",2000-01-01
+      [... 9,995 additional synthetic records omitted from provisioning seed ...]
+      NOTE: Full dataset seeded by artifacts role from /opt/ngsoc-artifacts/customers-full.csv
+    mode: "0644"
+
+- name: Create ransomware artefacts – simulated encrypted files (T1486)
+  ansible.builtin.copy:
+    dest: "{{ file_server_share }}/{{ item }}"
+    content: |
+      NG-SOC LM8 Training Artefact – Ransomware Simulation
+      This file simulates a document encrypted by the BlackFalcon ransomware.
+      Original filename: {{ item | replace('.locked','') }}
+      Encryption: AES-256-CBC (SIMULATED – NOT REAL ENCRYPTION)
+      Key ID: BF-2025-0042-SIM
+      For ransom payment instructions, see README-RANSOM.txt
+    mode: "0644"
+  loop:
+    - "quarterly-report-Q3-2025.docx.locked"
+    - "payroll-nov-2025.xlsx.locked"
+    - "customers-export-2025-11-01.csv.locked"
+    - "board-presentation-dec-2025.pptx.locked"
+    - "transaction-log-2025-10.db.locked"
+    - "backup-config-2025.tar.gz.locked"
+    - "wire-transfer-approvals.pdf.locked"
+    - "audit-trail-2025-q4.log.locked"
+    - "compliance-report-nis2.docx.locked"
+    - "incident-response-plan-v2.docx.locked"
+
+- name: Create ransomware ransom note (T1486 artefact)
+  ansible.builtin.copy:
+    dest: "{{ file_server_share }}/README-RANSOM.txt"
+    content: |
+      ===================================================================
+                    YOUR FILES HAVE BEEN ENCRYPTED
+              BlackFalcon Ransomware v2.1 – Campaign BF-Q4-2025
+      ===================================================================
+
+      ** THIS IS A TRAINING SIMULATION – NO FILES ARE ACTUALLY ENCRYPTED **
+      ** NG-SOC LM8 Exercise 5 Artefact – IR Coordinator Tabletop Scenario **
+
+      What happened?
+      Your organisation's files have been encrypted with military-grade
+      AES-256-CBC encryption. Your databases and file shares are inaccessible.
+
+      What do you want?
+      Transfer 15 Bitcoin (BTC) to wallet: 1A2B3C4D5E6F7G8H9INEX-SIMULATED
+      within 72 hours. After payment, you will receive the decryption key.
+
+      Your decryption key ID: BF-2025-0042-SIM
+      Contact: blackfalcon-support@onion-sim.internal (SIMULATED)
+
+      WARNING: Contacting law enforcement will result in key destruction.
+      WARNING: Attempting to decrypt files without the key will corrupt them.
+
+      TIME REMAINING: 71:58:32
+
+      ===================================================================
+      NGSOC TRAINING NOTE: This note is a SYNTHETIC ARTEFACT.
+      It is used in Exercise 5 (Tabletop Simulation) and Exercise 2
+      (Containment & Eradication). No ransomware was actually deployed.
+      ===================================================================
+    mode: "0644"
+
+- name: Create simulated encryption event log
+  ansible.builtin.copy:
+    dest: /var/log/encryption-events.log
+    content: |
+      2025-11-15T02:11:03Z [file-server] svc_update: file renamed: quarterly-report-Q3-2025.docx -> quarterly-report-Q3-2025.docx.locked
+      2025-11-15T02:11:04Z [file-server] svc_update: file renamed: payroll-nov-2025.xlsx -> payroll-nov-2025.xlsx.locked
+      2025-11-15T02:11:05Z [file-server] svc_update: file renamed: customers-export-2025-11-01.csv -> customers-export-2025-11-01.csv.locked
+      2025-11-15T02:11:06Z [file-server] svc_update: file renamed: board-presentation-dec-2025.pptx -> board-presentation-dec-2025.pptx.locked
+      2025-11-15T02:11:07Z [file-server] svc_update: file renamed: transaction-log-2025-10.db -> transaction-log-2025-10.db.locked
+      2025-11-15T02:11:08Z [file-server] svc_update: file renamed: backup-config-2025.tar.gz -> backup-config-2025.tar.gz.locked
+      2025-11-15T02:11:09Z [file-server] svc_update: file renamed: wire-transfer-approvals.pdf -> wire-transfer-approvals.pdf.locked
+      2025-11-15T02:11:10Z [file-server] svc_update: file renamed: audit-trail-2025-q4.log -> audit-trail-2025-q4.log.locked
+      2025-11-15T02:11:11Z [file-server] svc_update: file renamed: compliance-report-nis2.docx -> compliance-report-nis2.docx.locked
+      2025-11-15T02:11:12Z [file-server] svc_update: file renamed: incident-response-plan-v2.docx -> incident-response-plan-v2.docx.locked
+      2025-11-15T02:11:13Z [file-server] ALERT: ransomware note dropped: /srv/data/README-RANSOM.txt
+      2025-11-15T02:11:14Z [file-server] ALERT: 10 files encrypted by process PID 4281 (/tmp/.svc_update)
+    mode: "0644"
+
+- name: Configure Samba share (simulated corporate file share)
+  ansible.builtin.blockinfile:
+    path: /etc/samba/smb.conf
+    block: |
+      [corporate-data]
+         path = {{ file_server_share }}
+         browsable = yes
+         writable = no
+         guest ok = yes
+         read only = yes
+         comment = Corporate Data Share (NG-SOC Training)
+
+- name: Ensure Samba is started and enabled
+  ansible.builtin.service:
+    name: smbd
+    state: started
+    enabled: true
+
+- name: Install Wazuh agent
+  ansible.builtin.apt:
+    deb: "https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.7.0-1_amd64.deb"
+    state: present
+  ignore_errors: true
+
+- name: Configure Wazuh agent – point to SIEM
+  ansible.builtin.lineinfile:
+    path: /var/ossec/etc/ossec.conf
+    regexp: '<address>MANAGER_IP</address>'
+    line: "    <address>{{ wazuh_manager_ip }}</address>"
+    backrefs: true
+  ignore_errors: true
+
+- name: Enable and start Wazuh agent
+  ansible.builtin.service:
+    name: wazuh-agent
+    state: started
+    enabled: true
+  ignore_errors: true

@@ -1,0 +1,7 @@
+---
+wazuh_manager_port: 1514
+wazuh_api_port: 55000
+wazuh_dashboard_port: 5601
+opensearch_heap_size: "2g"
+wazuh_custom_rules_dir: "/var/ossec/etc/rules"
+wazuh_custom_decoders_dir: "/var/ossec/etc/decoders"

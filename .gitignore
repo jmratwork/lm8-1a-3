@@ -1,0 +1,25 @@
+# CyberRangeCZ / KYPO sandbox – git ignore rules
+
+# Ansible runtime artefacts
+*.retry
+provisioning/.vault_pass
+provisioning/vault_password_file
+provisioning/roles/*/files/*.key
+provisioning/roles/*/files/*.pem
+
+# Secrets – never commit real credentials
+*.env
+.env.*
+secrets.yml
+vault.yml
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/settings.json
+__pycache__/
+*.pyc

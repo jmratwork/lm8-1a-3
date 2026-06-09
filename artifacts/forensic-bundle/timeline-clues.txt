@@ -1,0 +1,80 @@
+================================================================================
+SYNTHETIC TRAINING ARTEFACT – Attack timeline reconstruction clues
+NG-SOC LM8 Sub Case 1a – Assessed Activity 2.0.3 (Express Forensic Report)
+This file is intentionally formatted as raw evidence clues for students to
+synthesise into a complete timeline. Timestamps are UTC.
+================================================================================
+
+--- CLUE SET A: Initial Access (T1566.001) ---
+
+[EMAIL SERVER LOG – MX relay – 2026-06-08]
+  09:14:22 RECEIVED Q4-wire-transfer-auth.docm → j.smith@securebank.ngsoc-lm8.internal
+             from: security-alerts@securebank-verify.bfcorp-sim.internal
+             size: 187392  spf=FAIL  dkim=FAIL
+
+[EMPLOYEE-WS SYSLOG]
+  09:31:07 employee-ws sshd[400]: Accepted publickey for analyst from 10.10.40.20
+  09:47:14 employee-ws sudo:  jsmith : TTY=pts/0 ; USER=root ; COMMAND=/bin/bash
+  10:05:00 employee-ws cron[312]: (root) CMD (/opt/c2-beacon/beacon.sh)
+  [No entry for DOCM execution — malware executed outside logged sessions]
+
+--- CLUE SET B: C2 Establishment (T1071.001) ---
+
+[EMPLOYEE-WS /var/log/syslog]
+  02:13:44 employee-ws nc[712]: Connected to 10.10.20.20:4444
+  02:13:44 employee-ws beacon.sh[713]: [+] Beacon: connection established to C2
+  02:13:46 employee-ws svc_update[711]: WARN possible Trojan infection — process /tmp/.svc_update
+
+[C2-SERVER /var/log/c2-sim/connections.log]
+  2026-06-08T02:13:44.221Z [CONNECT] src=10.10.30.10:49231 dst=10.10.20.20:4444
+  2026-06-08T02:13:49.002Z [CONNECT] src=10.10.30.10:49232 dst=10.10.20.20:4444  [beacon cycle 2]
+
+--- CLUE SET C: Lateral Movement (T1021.002) ---
+
+[FILE-SERVER /var/log/auth.log]
+  02:14:33 file-server sshd[511]: Accepted password for jsmith from 10.10.30.10 port 52011
+  02:14:41 file-server sudo[519]:  jsmith : TTY=pts/1 ; USER=root ; COMMAND=/bin/bash
+  02:15:01 file-server cron[602]: (root) CMD (/tmp/.svc_update)  [first execution of dropper]
+
+[DB-SERVER /var/log/auth.log]
+  02:15:55 db-server sshd[488]: Accepted password for jsmith from 10.10.30.10 port 54022
+  02:16:01 db-server sudo[496]:  jsmith : TTY=pts/0 ; USER=root ; COMMAND=/bin/bash
+  02:16:22 db-server mysql[1001]: [Note] Access denied for user 'dbadmin' — no wait, Access granted: SELECT on bankdb.accounts
+
+--- CLUE SET D: Data Access (T1005) ---
+
+[DB-SERVER /var/log/mysql/query.log]
+  02:16:22 root[1001] Query  SELECT * FROM bankdb.accounts LIMIT 500
+  02:16:23 root[1001] Query  SELECT * FROM bankdb.transactions WHERE date > '2026-01-01'
+  02:16:25 root[1001] Query  SELECT account_number, balance, sort_code FROM bankdb.accounts
+
+[WEB-BANKING APACHE ACCESS LOG]
+  02:14:12 10.10.30.10 - admin GET /dashboard.php?export=csv HTTP/1.1  200  48221
+
+--- CLUE SET E: Ransomware Deployment (T1486) ---
+
+[FILE-SERVER /var/log/encryption-events.log]
+  02:15:43.921Z rename /srv/data/Q1-budget.xlsx → /srv/data/Q1-budget.xlsx.locked
+  02:15:44.104Z rename /srv/data/payroll-Jun2026.xlsx → /srv/data/payroll-Jun2026.xlsx.locked
+  02:15:44.312Z rename /srv/data/wire-instructions-EU.pdf → /srv/data/wire-instructions-EU.pdf.locked
+  ...
+  02:15:55.924Z rename /srv/data/network-diagram-internal.png → /srv/data/network-diagram-internal.png.locked
+  02:15:57.200Z create /srv/data/README-RANSOM.txt
+  [47 files renamed in 12.03 seconds]
+
+--- CLUE SET F: Persistence (T1053.005) ---
+
+[EMPLOYEE-WS cron]
+  */5 * * * * root /tmp/.svc_update  [installed at 02:13:46, same second as malware log entry]
+
+[FILE-SERVER cron]
+  */5 * * * * root /tmp/.svc_update  [installed at 02:15:01]
+
+--- RECONSTRUCTION GUIDE FOR STUDENTS ---
+  Sort all timestamps chronologically to reconstruct the kill chain.
+  Key questions:
+  1. When did initial access occur? (hint: email timestamp vs. first C2 callback)
+  2. How long was the attacker present before detection? (detection gap)
+  3. Were all 3 stages (Initial Access → Lateral Movement → Impact) from the same IP?
+  4. What was the final evidence of data exfiltration before encryption?
+  5. Which host was NOT affected? (kali — red team network, separate segment)
