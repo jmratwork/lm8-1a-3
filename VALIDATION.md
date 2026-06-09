@@ -23,7 +23,6 @@ This table maps every referenced resource to its implementation status in the sa
 
 | Network | CIDR | Disjoint? | accessible_by_user |
 |---|---|---|---|
-| net-transit | 10.10.10.0/24 | ✅ | false |
 | net-dmz | 10.10.20.0/24 | ✅ | true |
 | net-corp | 10.10.30.0/24 | ✅ | false |
 | net-security | 10.10.40.0/24 | ✅ | true |
@@ -122,7 +121,7 @@ All topology names validated against CyberRangeCZ rules (characters [a-z A-Z 0-9
 
 | Name | Type | Compliant |
 |---|---|---|
-| net-transit, net-dmz, net-corp, net-security, net-redteam | networks | ✅ |
+| net-dmz, net-corp, net-security, net-redteam | networks | ✅ |
 | router-perimeter, router-internal | routers | ✅ |
 | web-banking, c2-server, employee-ws, file-server, db-server, siem, analyst-host, cti, kali | hosts | ✅ |
 | grp-dmz, grp-corp, grp-security, grp-redteam, grp-routing | custom groups | ✅ (grp- prefix avoids reserved names) |

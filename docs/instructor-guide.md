@@ -119,7 +119,6 @@ See `README.md` for the full ASCII diagram. Summary:
 
 | Segment | CIDR | User-Accessible | Key Hosts |
 |---|---|---|---|
-| net-transit | 10.10.10.0/24 | No | Backbone only |
 | net-dmz | 10.10.20.0/24 | Yes | web-banking, c2-server (hidden) |
 | net-corp | 10.10.30.0/24 | No | employee-ws, file-server, db-server |
 | net-security | 10.10.40.0/24 | Yes | siem, analyst-host, cti |

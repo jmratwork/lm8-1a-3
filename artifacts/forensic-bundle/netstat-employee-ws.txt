@@ -17,7 +17,7 @@ udp    UNCONN      0       0       0.0.0.0:68               0.0.0.0:*           
 
 DNS QUERY LOG (from /var/log/syslog excerpt):
   02:14:08 employee-ws dnsmasq[180]: query[A] update-svc.blackfalcon-sim.internal from 127.0.0.1
-  02:14:08 employee-ws dnsmasq[180]: forwarded update-svc.blackfalcon-sim.internal to 10.10.10.1
+  02:14:08 employee-ws dnsmasq[180]: forwarded update-svc.blackfalcon-sim.internal to 10.10.30.1
   02:14:09 employee-ws dnsmasq[180]: reply update-svc.blackfalcon-sim.internal is 10.10.20.20
 
 ARP CACHE (relevant entries):

@@ -16,20 +16,15 @@ CyberRangeCZ / KYPO Platform | NG-SOC WP5 Training Scenario
 ## Network Topology
 
 ```
-Internet / Management (100.100.100.0/24 – platform reserved)
-         │
-         │ [Management interface on all hosts – platform-injected]
-         │
-┌────────▼────────────────────────────────────────────────────────┐
-│                    net-transit (10.10.10.0/24)                  │
-│              Router backbone – not user-accessible              │
-│                                                                 │
-│   ┌─────────────────┐       ┌──────────────────────┐           │
-│   │  router-perimeter│       │   router-internal    │           │
-│   │  (10.10.10.1)   │       │   (10.10.10.2)       │           │
-└───┤  debian-12      ├───────┤   debian-12          ├───────────┘
-    │  standard.small │       │   standard.small     │
-    └────────┬────────┘       └──────────┬───────────┘
+WAN / Management (100.100.100.0/24 – platform automatic, all nodes)
+              │                              │
+              ▼                              ▼
+   ┌─────────────────┐       ┌──────────────────────┐
+   │  router-perimeter│◄─────►   router-internal    │
+   │  gw: 10.10.20.1 │  WAN  │  gw: .30.1/.40.1    │
+   │  debian-12      │       │  debian-12           │
+   │  standard.small │       │  standard.small      │
+   └────────┬────────┘       └──────────┬───────────┘
              │                           │
     ┌────────▼────────┐       ┌──────────▼───────────┐
     │  net-dmz        │       │  net-corp             │
@@ -59,7 +54,7 @@ Internet / Management (100.100.100.0/24 – platform reserved)
     │  std.large      │       │                       │
     │  Wazuh+OpenSearch       │  kali                 │
     │                 │       │  10.10.50.10          │
-    │  analyst-host   │       │  kali-2020.4          │
+    │  analyst-host   │       │  kali                 │
     │  10.10.40.20    │       │  std.large            │
     │  ubuntu-noble   │       └───────────────────────┘
     │  std.medium     │

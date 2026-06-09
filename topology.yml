@@ -1,7 +1,7 @@
 ---
 # ============================================================================
 # NG-SOC Learning Module 8 – Incident Response and Forensics (Sub Case 1a)
-# CyberRangeCZ/KYPO Sandbox Topology Definition  v1.0
+# CyberRangeCZ/KYPO Sandbox Topology Definition  v1.1
 # Responsible Partner: FUNITEC  |  Project: NG-SOC (GA 101145874)
 # ============================================================================
 #
@@ -18,12 +18,13 @@
 #   Revised total: ~10 vCPU, ~38 GB RAM.
 #
 # CLOUD-SIDE PREREQUISITES (verify before deployment):
-#   1. Images exist: debian-12-x86_64, ubuntu-noble-x86_64, kali-2020.4
+#   1. Images exist: debian-12-x86_64, ubuntu-noble-x86_64, kali
 #      Substitutes: ubuntu-focal-x86_64 (Ubuntu 20.04), kali-rolling
 #   2. Flavours: standard.small / standard.medium / standard.large
 #      Substitutes per cloud: m1.small / m1.medium / m1.large
-#   3. Management network: 100.100.100.0/24 (reserved – do not reuse)
-#   4. All CIDRs below are disjoint and non-overlapping with management
+#   3. Management/WAN network: 100.100.100.0/24 (platform-reserved, automatic)
+#      Routers communicate via this network – no transit network needed.
+#   4. All user-defined CIDRs below are disjoint from 100.100.100.0/24
 # ============================================================================
 
 name: ngsoc-lm8-subcase1a
@@ -165,8 +166,6 @@ hosts:
   # Also hosts spear-phishing simulation artefacts (Activity 2.0.1):
   #   - /home/kali/phishing/ (email EML, SMS txt, call script, attachment)
   # standard.large required: Metasploit database + concurrent scans.
-  # NOTE: If kali-2020.4 is unavailable in the target cloud, see
-  #       provisioning/roles/kali-redteam/README.md for the Ubuntu fallback.
   - name: kali
     flavor: standard.large
     base_box:
@@ -174,23 +173,26 @@ hosts:
       mgmt_user: kali
 
 # ─── ROUTERS ─────────────────────────────────────────────────────────────────
+# Inter-router communication uses the platform's automatic WAN network
+# (100.100.100.0/24). No user-defined transit network is needed or allowed.
 routers:
-  # Perimeter router: gateway between transit backbone and DMZ.
-  # Provisioning configures iptables to simulate an internet-edge firewall:
-  # - Allows inbound HTTP/HTTPS to web-banking (10.10.20.10)
-  # - Blocks all other unsolicited inbound connections
-  # - NATs outbound traffic from internal segments (for simulated internet reach)
+  # Perimeter router: gateway for the DMZ segment.
+  # iptables rules simulate an internet-edge firewall:
+  #   - Allows inbound HTTP/HTTPS to web-banking (10.10.20.10)
+  #   - Allows C2 port 4444 from corp LAN only (exercise artefact)
+  #   - Routes to internal segments via router-internal WAN IP
   - name: router-perimeter
     flavor: standard.small
     base_box:
       image: debian-12-x86_64
       mgmt_user: debian
 
-  # Internal router: connects all internal segments via the transit backbone.
-  # Provisioning configures inter-segment routing:
-  # - net-corp ↔ net-security (allows analyst-host to reach corp hosts for forensics)
-  # - net-redteam → net-dmz (allows kali to reach web-banking for pen test)
-  # - Blocks net-redteam → net-corp and net-redteam → net-security (scope control)
+  # Internal router: gateway for corp, security-tools, and red-team segments.
+  # iptables rules enforce exercise scope:
+  #   - net-corp ↔ net-security (analyst-host forensics access + Wazuh agents)
+  #   - net-redteam → net-dmz only (pen-test scope)
+  #   - BLOCK net-redteam → net-corp and net-redteam → net-security
+  #   - Routes to DMZ via router-perimeter WAN IP
   - name: router-internal
     flavor: standard.small
     base_box:
@@ -199,19 +201,15 @@ routers:
 
 # ─── NETWORKS ────────────────────────────────────────────────────────────────
 #
-#  10.10.10.0/24  net-transit   Router backbone (not user-visible)
 #  10.10.20.0/24  net-dmz       DMZ: banking web app + hidden C2
 #  10.10.30.0/24  net-corp      Corporate LAN: employee WS + data servers
 #  10.10.40.0/24  net-security  Security tools: SIEM + forensics + MISP
 #  10.10.50.0/24  net-redteam   Red-team: Kali workstation
 #
+# NOTE: No transit network defined. Routers communicate via the platform's
+# automatic WAN (100.100.100.0/24). Each user-defined network connects to
+# exactly one router (platform requirement).
 networks:
-  # Transit backbone – interconnects the two routers only; never exposed to
-  # trainees (no user-accessible nodes live here)
-  - name: net-transit
-    cidr: 10.10.10.0/24
-    accessible_by_user: false
-
   # DMZ – simulated internet-facing segment; hosts the vulnerable banking web
   # application (Exercise 4) and the hidden C2 server (Exercises 1 & 3).
   # Trainees can reach this segment from kali (red-team) and analyst-host.
@@ -286,22 +284,16 @@ net_mappings:
     ip: 10.10.50.10
 
 # ─── ROUTER MAPPINGS ─────────────────────────────────────────────────────────
+# Each router attaches to exactly one user-defined network (platform requirement).
+# Inter-router routing uses the automatic WAN (100.100.100.0/24).
 router_mappings:
 
-  # router-perimeter: transit backbone (.1) + DMZ gateway (.1)
-  - router: router-perimeter
-    network: net-transit
-    ip: 10.10.10.1
-
+  # router-perimeter owns the DMZ gateway
   - router: router-perimeter
     network: net-dmz
     ip: 10.10.20.1
 
-  # router-internal: transit backbone (.2) + internal segment gateways
-  - router: router-internal
-    network: net-transit
-    ip: 10.10.10.2
-
+  # router-internal owns the corp, security-tools, and red-team gateways
   - router: router-internal
     network: net-corp
     ip: 10.10.30.1

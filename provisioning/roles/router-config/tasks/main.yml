@@ -3,6 +3,10 @@
 # Configures IP forwarding and iptables rules on both routers.
 # router-perimeter: simulated perimeter firewall (DMZ gateway)
 # router-internal: inter-segment routing with access controls
+#
+# Inter-router routing uses the platform's automatic WAN (100.100.100.0/24).
+# Static routes reference the peer router's ansible_host (WAN/mgmt IP),
+# which is injected by the platform into the Ansible inventory.
 
 - name: Enable IPv4 forwarding (sysctl)
   ansible.posix.sysctl:
@@ -56,9 +60,9 @@
     jump: ACCEPT
   when: inventory_hostname == "router-perimeter"
 
-- name: Perimeter – add static route back to internal networks via router-internal
+- name: Perimeter – add static routes to internal segments via router-internal (WAN)
   ansible.builtin.command:
-    cmd: "ip route replace {{ item }} via 10.10.10.2"
+    cmd: "ip route replace {{ item }} via {{ hostvars['router-internal']['ansible_host'] }}"
   loop:
     - "10.10.30.0/24"
     - "10.10.40.0/24"
@@ -114,9 +118,9 @@
     jump: DROP
   when: inventory_hostname == "router-internal"
 
-- name: Internal – add static route to DMZ via perimeter router
+- name: Internal – add static route to DMZ via router-perimeter (WAN)
   ansible.builtin.command:
-    cmd: "ip route replace 10.10.20.0/24 via 10.10.10.1"
+    cmd: "ip route replace 10.10.20.0/24 via {{ hostvars['router-perimeter']['ansible_host'] }}"
   changed_when: true
   when: inventory_hostname == "router-internal"
 
