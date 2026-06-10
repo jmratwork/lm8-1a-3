@@ -8,9 +8,19 @@
     name: "{{ common_timezone }}"
 
 - name: Set locale
-  ansible.builtin.command:
-    cmd: "localectl set-locale LANG={{ common_locale }}"
-  changed_when: false
+  ansible.builtin.copy:
+    content: "LANG={{ common_locale }}\n"
+    dest: /etc/default/locale
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Refresh Kali archive keyring
+  ansible.builtin.get_url:
+    url: https://archive.kali.org/archive-keyring.gpg
+    dest: /usr/share/keyrings/kali-archive-keyring.gpg
+    mode: "0644"
+  when: ansible_distribution | lower == "kali"
 
 - name: Update apt cache (Debian/Ubuntu)
   ansible.builtin.apt:

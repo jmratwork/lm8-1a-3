@@ -1,4 +1,5 @@
 ---
+banking_db_host: "127.0.0.1"
 banking_app_port: 80
 banking_app_dir: "/var/www/html/banking"
 banking_db_name: "bankdb"
