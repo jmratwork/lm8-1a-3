@@ -10,7 +10,9 @@ internal_domain: "ngsoc-lm8.internal"
 
 # Analyst training user (created on security-tools hosts for student access)
 student_user: "analyst"
-student_password_hash: "$6$rounds=5000$ngsoc2025$example_hash_replace_before_deploy"
+# TODO: replace with a real SHA-512 hash before deploying.
+# Generate with: python3 -c "import crypt; print(crypt.crypt('PASSWORD', crypt.mksalt(crypt.METHOD_SHA512)))"
+student_password_hash: "CHANGEME"
 
 # Common package list installed on every node
 common_packages:
