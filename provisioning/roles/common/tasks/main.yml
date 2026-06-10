@@ -41,6 +41,13 @@
     append: true
     state: present
 
+- name: Inject platform SSH public key for student user
+  ansible.posix.authorized_key:
+    user: "{{ student_user }}"
+    key: "{{ global_ssh_public_user_key }}"
+    state: present
+  when: global_ssh_public_user_key is defined and global_ssh_public_user_key | length > 0
+
 - name: Allow analyst sudo without password (training environment)
   ansible.builtin.copy:
     dest: "/etc/sudoers.d/{{ student_user }}"

@@ -2,6 +2,10 @@
 # Ansible Galaxy role dependencies for NG-SOC LM8 provisioning.
 # Install with: ansible-galaxy install -r requirements.yml
 # (Run this from the provisioning/ directory before deploying.)
+collections:
+  - name: ansible.posix
+    version: ">=1.3.0"
+
 roles: []
 
 # No external Galaxy roles are required; all logic is implemented in-repo.
