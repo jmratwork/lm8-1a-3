@@ -102,32 +102,34 @@
     login_user: root
     login_password: "{{ mysql_root_password }}"
     login_db: "{{ banking_db_name }}"
-    query: |
-      CREATE TABLE IF NOT EXISTS accounts (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(50) NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        full_name VARCHAR(100),
-        account_number VARCHAR(20),
-        balance DECIMAL(12,2),
-        email VARCHAR(100)
-      );
-      CREATE TABLE IF NOT EXISTS transactions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        from_account VARCHAR(20),
-        to_account VARCHAR(20),
-        amount DECIMAL(12,2),
-        timestamp DATETIME,
-        description VARCHAR(255)
-      );
-      CREATE TABLE IF NOT EXISTS admin_users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(50) NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        role VARCHAR(20)
-      );
-      INSERT IGNORE INTO admin_users (username, password, role)
-        VALUES ('admin', 'admin123', 'superadmin');
+    query:
+      - |
+        CREATE TABLE IF NOT EXISTS accounts (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(50) NOT NULL,
+          password_hash VARCHAR(255) NOT NULL,
+          full_name VARCHAR(100),
+          account_number VARCHAR(20),
+          balance DECIMAL(12,2),
+          email VARCHAR(100)
+        )
+      - |
+        CREATE TABLE IF NOT EXISTS transactions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          from_account VARCHAR(20),
+          to_account VARCHAR(20),
+          amount DECIMAL(12,2),
+          timestamp DATETIME,
+          description VARCHAR(255)
+        )
+      - |
+        CREATE TABLE IF NOT EXISTS admin_users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(50) NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          role VARCHAR(20)
+        )
+      - "INSERT IGNORE INTO admin_users (username, password, role) VALUES ('admin', 'admin123', 'superadmin')"
 
 - name: Seed synthetic customer records (100 rows)
   ansible.builtin.shell:

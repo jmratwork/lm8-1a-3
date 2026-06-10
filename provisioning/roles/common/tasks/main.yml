@@ -21,6 +21,7 @@
     dest: /usr/share/keyrings/kali-archive-keyring.gpg
     mode: "0644"
   when: ansible_distribution | lower == "kali"
+  failed_when: false
 
 - name: Update apt cache (Debian/Ubuntu)
   ansible.builtin.apt:
