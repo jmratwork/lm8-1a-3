@@ -126,6 +126,12 @@
   async: 600
   poll: 30
 
+- name: Create ngsoc-alerts directory
+  ansible.builtin.file:
+    path: /opt/ngsoc-alerts
+    state: directory
+    mode: "0755"
+
 - name: Deploy pre-seeded alert JSON for Exercise 1 scenario
   ansible.builtin.copy:
     dest: /opt/ngsoc-alerts/ex1-preseeded-alerts.json
@@ -134,9 +140,3 @@
       {"timestamp":"2025-11-15T02:09:00Z","rule":{"id":"100002","level":12,"description":"ALERT: Endpoint agent reports possible Trojan infection"},"agent":{"name":"employee-ws","ip":"10.10.30.10"},"data":{"process":"/tmp/.svc_update","message":"possible Trojan infection"}}
       {"timestamp":"2025-11-15T02:09:05Z","rule":{"id":"100005","level":10,"description":"ALERT: DNS query to known Black Falcon C2 domain"},"agent":{"name":"employee-ws","ip":"10.10.30.10"},"data":{"dns_query":"update-svc.blackfalcon-sim.internal"}}
     mode: "0644"
-
-- name: Create ngsoc-alerts directory
-  ansible.builtin.file:
-    path: /opt/ngsoc-alerts
-    state: directory
-    mode: "0755"
