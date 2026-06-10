@@ -12,7 +12,7 @@ internal_domain: "ngsoc-lm8.internal"
 student_user: "analyst"
 # TODO: replace with a real SHA-512 hash before deploying.
 # Generate with: python3 -c "import crypt; print(crypt.crypt('PASSWORD', crypt.mksalt(crypt.METHOD_SHA512)))"
-student_password_hash: "CHANGEME"
+student_password_hash: "$6$Yq50kRQBbZMOVx0A$RmdLzXqZbE4.C1t2EdGXHG1K4LpGsQz3qdn9ijPOh/64mRtAOkyfIHqi/6OLAaX4xYm8yn5CtQzwWlV2vjbzP/"
 
 # Common package list installed on every node
 common_packages:
