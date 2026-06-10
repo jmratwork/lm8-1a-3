@@ -1,7 +1,7 @@
 ---
 # Role: kali-redteam
 # Configures the Kali Linux red-team workstation for Exercise 4 (Pen Tester).
-# If kali-2020.4 image is unavailable, this role installs tools on Ubuntu instead.
+# If kali image is unavailable, this role installs tools on Ubuntu instead.
 # Tools: nmap, metasploit, sqlmap, nikto, hydra, gobuster, wordlists.
 
 - name: Update apt cache

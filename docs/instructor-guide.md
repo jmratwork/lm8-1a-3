@@ -64,10 +64,10 @@ Custom groups in this project use the prefix `grp-` to avoid any conflict.
 | `centos-8` | CentOS 8 | |
 | `windows-10` | Windows 10 | winrm mgmt |
 | `windows-server-2019` | Windows Server 2019 | winrm mgmt |
-| `kali-2020.4` | Kali Linux 2020.4 | Red-team host |
+| `kali` | Kali Linux | Red-team host |
 | `cirros-0-x86_64` | CirrOS | Minimal test only |
 
-**Cloud-side adjustments**: If `ubuntu-noble-x86_64` is unavailable, substitute `ubuntu-focal-x86_64` (Ubuntu 20.04). If `kali-2020.4` is unavailable, request import or substitute `ubuntu-noble-x86_64` and install Kali tools via provisioning.
+**Cloud-side adjustments**: If `ubuntu-noble-x86_64` is unavailable, substitute `ubuntu-focal-x86_64` (Ubuntu 20.04). If `kali` is unavailable, request import or substitute `ubuntu-noble-x86_64` and install Kali tools via provisioning.
 
 ### 1.5 Standard Flavours
 
@@ -411,7 +411,7 @@ Bundle contents:
 
 The following items must be verified or adjusted to match the **target OpenStack environment** before deployment:
 
-1. **Image availability**: Confirm `kali-2020.4`, `ubuntu-noble-x86_64`, and `debian-12-x86_64` exist in the target cloud. Update `topology.yml` if substitution needed.
+1. **Image availability**: Confirm `kali`, `ubuntu-noble-x86_64`, and `debian-12-x86_64` exist in the target cloud. Update `topology.yml` if substitution needed.
 2. **Flavour names**: Confirm `standard.small`, `standard.medium`, `standard.large` are valid. Some clouds use `m1.small` etc. — update accordingly.
 3. **Management CIDR**: Confirm management network uses `100.100.100.0/24`. If different, verify none of the topology CIDRs conflict.
 4. **MISP SMTP**: MISP provisioning disables email by default; if outbound email is required, configure SMTP relay in `provisioning/group_vars/grp-security.yml`.

@@ -12,7 +12,7 @@ This table maps every referenced resource to its implementation status in the sa
 |---|---|---|---|
 | `ubuntu-noble-x86_64` | topology.yml | ✅ Valid | Used by web-banking, employee-ws, file-server, db-server, siem, analyst-host, cti |
 | `debian-12-x86_64` | topology.yml | ✅ Valid | Used by router-perimeter, router-internal, c2-server |
-| `kali-2020.4` | topology.yml | ✅ Valid | Used by kali |
+| `kali` | topology.yml | ✅ Valid | Used by kali |
 | `standard.small` | topology.yml | ✅ Valid | 1vCPU/2GB/80GB |
 | `standard.medium` | topology.yml | ✅ Valid | 1vCPU/4GB/80GB |
 | `standard.large` | topology.yml | ✅ Valid | 2vCPU/16GB/80GB |
