@@ -2,7 +2,7 @@
 # Role: forensics-host (analyst-host)
 # Deploys DFIR toolset for Exercise 2 (Incident Responder).
 # Tools: Velociraptor, The Sleuth Kit, Volatility 3, tcpdump, hashdeep,
-#        tshark, strings, binwalk, foremost.
+#        tshark, binutils (strings), binwalk, foremost.
 # Also deploys the express forensic report template (Activity 2.0.3).
 
 - name: Install DFIR base packages
@@ -16,7 +16,7 @@
       - binwalk
       - foremost
       - hashdeep
-      - strings
+      - binutils
       - python3-pip
       - python3-venv
       - git
