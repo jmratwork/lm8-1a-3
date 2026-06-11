@@ -10,6 +10,13 @@
     mode: "0755"
 
 # ── Forensic bundle (analyst-host only) ──────────────────────────────────────
+- name: Create forensic bundle directory on analyst-host
+  ansible.builtin.file:
+    path: /opt/ngsoc-artifacts/forensic-bundle
+    state: directory
+    mode: "0755"
+  when: inventory_hostname == "analyst-host"
+
 - name: Deploy forensic artefact bundle (Activity 2.0.3)
   ansible.builtin.copy:
     src: "{{ item.src }}"
@@ -24,13 +31,6 @@
     - { src: "forensic-bundle/timeline-clues.txt",           dest: "timeline-clues.txt" }
   when: inventory_hostname == "analyst-host"
   ignore_errors: true
-
-- name: Create forensic bundle directory on analyst-host
-  ansible.builtin.file:
-    path: /opt/ngsoc-artifacts/forensic-bundle
-    state: directory
-    mode: "0755"
-  when: inventory_hostname == "analyst-host"
 
 # ── Phishing artefacts (kali only, for Activity 2.0.1 instructor delivery) ───
 - name: Create phishing artefacts directory
