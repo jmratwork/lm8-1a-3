@@ -16,12 +16,12 @@
     mode: "0644"
 
 - name: Refresh Kali archive keyring
-  ansible.builtin.get_url:
-    url: https://archive.kali.org/archive-keyring.gpg
-    dest: /usr/share/keyrings/kali-archive-keyring.gpg
-    mode: "0644"
-  when: ansible_distribution | lower == "kali"
-  failed_when: false
+  ansible.builtin.shell:
+    cmd: >-
+      curl -fsSL https://archive.kali.org/archive-key.asc
+      | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
+  when: ansible_distribution == "Kali GNU/Linux"
+  changed_when: true
 
 - name: Update apt cache (Debian/Ubuntu)
   ansible.builtin.apt:

@@ -1,0 +1,77 @@
+==============================================================
+TRAINING SIMULATION -- NG-SOC LM8 -- ACTIVITY 2.0.1
+SUSPICIOUS ATTACHMENT PLACEHOLDER -- Black Falcon Campaign
+THIS FILE IS COMPLETELY INERT -- NO EXECUTABLE CODE OR MALWARE
+==============================================================
+
+This file is a plaintext placeholder representing the malicious
+macro-enabled Word document delivered in the Black Falcon campaign.
+
+==============================================================
+SIMULATED FILE METADATA
+==============================================================
+
+  Filename        : Q4-wire-transfer-auth.docm
+  MIME type       : application/vnd.ms-word.document.macroEnabled.12
+  Apparent size   : ~246 KB
+  Delivery method : Email attachment (see phishing-email.eml)
+
+  Hashes (SIMULATED -- not derived from any real file):
+    MD5    : aabbccdd11223344aabbccdd11223344
+    SHA256 : deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb
+
+  These hashes are seeded into MISP as Black Falcon IoCs.
+  Cross-reference: /opt/misp-docker/seed-black-falcon.py
+
+==============================================================
+SIMULATED ATTACK CHAIN (for analysis, not execution)
+==============================================================
+
+Step 1 -- Social engineering
+  Victim opens email from spoofed CFO (see phishing-email.eml).
+  Attachment name references a plausible business document.
+
+Step 2 -- Document opens, macro prompt appears
+  Word displays: "This document contains macros. Enable to view content."
+  MITRE: T1204.002 (User Execution: Malicious File)
+
+Step 3 -- If macros enabled, VBA dropper runs
+  Simulated actions (NOT REAL):
+    - Drops loader: %APPDATA%\Microsoft\Update\svchost32.exe
+    - Establishes persistence via registry Run key:
+      HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdate
+  MITRE: T1547.001 (Boot/Logon Autostart: Registry Run Keys)
+
+Step 4 -- Loader beacons to C2
+  Simulated C2 URL: http://update-svc.blackfalcon-sim.internal/update.php
+  Protocol: HTTP with custom User-Agent to blend with normal traffic
+  MITRE: T1071.001 (Application Layer Protocol: Web Protocols)
+
+Step 5 -- Credential exfiltration
+  Banking credentials captured via browser hooking (SIMULATED).
+  MITRE: T1555.003 (Credentials from Password Stores: Web Browsers)
+
+==============================================================
+STUDENT ANALYSIS TASKS
+==============================================================
+
+1. What file extension indicates a macro-enabled Word document?
+   (.docm -- "m" suffix signals macro capability)
+
+2. Which MITRE technique covers the "Enable Macros" social engineering?
+   T1204.002 -- User Execution: Malicious File
+
+3. Look up the simulated SHA256 in MISP. What event does it belong to?
+   Expected: Black Falcon -- Banking Trojan Campaign (NG-SOC LM8 Training)
+
+4. What Wazuh rule category would alert on the dropped binary?
+   Hint: look for rules matching sysmon EventID 11 (FileCreate) in
+   AppData paths, or Windows Defender detections.
+
+5. Write a Sigma rule to detect the registry persistence key.
+   (Key: HKCU\Software\Microsoft\Windows\CurrentVersion\Run)
+
+==============================================================
+THIS FILE CONTAINS NO EXECUTABLE CODE, MACROS, OR MALWARE.
+FOR TRAINING USE ONLY -- NG-SOC LM8 -- CyberRangeCZ/KYPO
+==============================================================

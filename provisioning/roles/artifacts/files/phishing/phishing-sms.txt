@@ -1,0 +1,40 @@
+==============================================================
+TRAINING SIMULATION -- NG-SOC LM8 -- ACTIVITY 2.0.1
+SMISHING (SMS PHISHING) ARTEFACT -- Black Falcon Campaign
+All content below is FICTIONAL and INERT.
+No real phone numbers, domains, or links are used.
+==============================================================
+
+--- SIMULATED SMS MESSAGE ---
+
+Sender (spoofed): NORDIK-BANK  [shortcode spoofed, FICTIONAL]
+Received: 2025-04-10 09:22 UTC
+
+  NORDIK BANK: Unusual login detected from IP 185.220.x.x.
+  Your account has been temporarily restricted.
+  Verify your identity within 2 hours to restore access:
+  http://nordik-sec-verify.example/auth?token=BF-SIM-001
+  If this was you, ignore this message.
+
+[SIMULATED URL -- INERT -- DO NOT ATTEMPT TO VISIT]
+
+--- END OF SIMULATED SMS ---
+
+==============================================================
+INDICATORS FOR STUDENT ANALYSIS:
+
+1. Sender spoofing: SMS shortcode "NORDIK-BANK" can be trivially spoofed
+2. Urgency / fear: "restricted account", 2-hour deadline
+3. Domain mismatch: nordik-sec-verify.example != real bank domain
+4. Generic greeting: no name, account number, or last-4 digits
+5. Action requested: click a link to "verify identity"
+6. Destination URL: token parameter likely pre-fills a credential form
+
+MITRE ATT&CK MAPPING:
+  T1566.004 -- Phishing: Spearphishing via Service (SMS)
+
+RELATED ARTEFACTS (in /opt/ngsoc-artifacts/phishing/):
+  phishing-email.eml        -- accompanying email lure
+  phishing-call-script.txt  -- vishing follow-up call
+  suspicious-attachment.txt -- payload description
+==============================================================

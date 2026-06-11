@@ -1,0 +1,61 @@
+MIME-Version: 1.0
+Date: Thu, 10 Apr 2025 09:15:33 +0000
+Message-ID: <BF-SIM-20250410-001@blackfalcon-sim.internal>
+From: "Thomas Hauser (CFO)" <t.hauser@nordik-bank-internal.example>
+To: employees@ngsoc-training.example
+Subject: Urgent: Q4 Wire Transfer Authorisation Required
+Content-Type: multipart/mixed; boundary="==NGSOC-SIM-BOUNDARY-BF001=="
+X-Mailer: Microsoft Outlook 16.0
+X-Simulation-Notice: NG-SOC LM8 Black Falcon -- TRAINING ARTEFACT ONLY
+
+--==NGSOC-SIM-BOUNDARY-BF001==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[*** TRAINING SIMULATION -- NG-SOC LM8 -- ACTIVITY 2.0.1 ***]
+[All names, domains, links and attachments are FICTIONAL and INERT.]
+[This email was crafted for CyberRangeCZ/KYPO -- Black Falcon campaign.]
+
+------------------------------------------------------------
+
+Dear Team,
+
+I need your immediate assistance with a time-sensitive matter.
+
+Please review and co-sign the Q4 wire transfer authorisation document
+attached to this email. The transfer of EUR 142,500 to our new
+technology vendor must clear by close of business today. Legal and
+Compliance have already given their approval.
+
+Please open the attached document, enable macros if prompted, and
+enter your Single Sign-On credentials to digitally co-sign the order.
+
+I am in back-to-back board meetings today -- please do NOT call my
+direct line. Reply to this email only.
+
+Best regards,
+
+Thomas Hauser
+Chief Financial Officer | Nordik Bank (SIMULATED ENTITY)
+Office: +49 30 1234 5678  |  Mobile: +49 172 987 6543
+[FICTIONAL CONTACT DETAILS]
+
+------------------------------------------------------------
+[SIMULATED ATTACHMENT METADATA]
+Filename : Q4-wire-transfer-auth.docm
+MIME type: application/vnd.ms-word.document.macroEnabled.12
+Hash MD5 : aabbccdd11223344aabbccdd11223344  (SIMULATED -- not a real file)
+Hash SHA256: deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb
+
+--==NGSOC-SIM-BOUNDARY-BF001==
+Content-Type: text/plain; name="Q4-wire-transfer-auth.docm.SIMULATED"
+Content-Disposition: attachment; filename="Q4-wire-transfer-auth.docm.SIMULATED"
+
+[INERT PLACEHOLDER -- THIS IS NOT A REAL DOCM FILE]
+This file represents the malicious macro-enabled Word document used
+in the Black Falcon spear-phishing campaign simulation.
+A real attack would use a VBA macro to drop a loader binary.
+No executable code, macros, or malware of any kind is present here.
+Training purpose only -- NG-SOC LM8 CyberRangeCZ/KYPO.
+
+--==NGSOC-SIM-BOUNDARY-BF001==--
