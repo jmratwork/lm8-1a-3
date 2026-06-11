@@ -1,0 +1,53 @@
+==============================================================
+ENDPOINT PROCESS LIST – employee-ws (10.10.30.10)
+Captured: 2025-11-15 02:10:08 UTC
+Tool: ps aux (SYNTHETIC – NG-SOC LM8 Activity 2.0.3)
+All process names, PIDs and users are FICTIONAL training data.
+==============================================================
+
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.0  0.1 168444 10284 ?        Ss   01:00   0:02 /sbin/init
+root         2  0.0  0.0      0     0 ?        S    01:00   0:00 [kthreadd]
+root       312  0.0  0.1  72396  8192 ?        Ss   01:00   0:00 /lib/systemd/systemd-journald
+root       338  0.0  0.1  44184  7908 ?        Ss   01:00   0:00 /lib/systemd/systemd-udevd
+root       601  0.0  0.1  15820  7224 ?        Ss   01:00   0:00 /usr/sbin/sshd -D
+root       612  0.0  0.2 107548 18432 ?        Ss   01:00   0:01 /usr/sbin/rsyslogd -n
+root       614  0.0  0.0   5576  1788 ?        Ss   01:00   0:00 /usr/sbin/cron -f
+root       615  0.0  0.1  14680  9216 ?        Ss   01:00   0:00 /lib/systemd/systemd-logind
+www-data   721  0.0  0.3 437124 26112 ?        Ss   01:00   0:00 /usr/sbin/apache2 -k start
+www-data   722  0.0  0.3 437124 26112 ?        S    01:00   0:00 /usr/sbin/apache2 -k start
+jsmith    1104  0.0  0.1  15824  8192 ?        Ss   01:45   0:00 /lib/systemd/systemd --user
+jsmith    1108  0.0  0.1  75396  7840 ?        S    01:45   0:00 (sd-pam)
+jsmith    1822  0.0  0.1  22584  9472 pts/0    Ss   01:45   0:00 -bash
+jsmith    1823  0.0  0.4 754392 36864 pts/0    S    01:45   0:08 /usr/bin/python3 /usr/bin/gnome-session
+jsmith    2104  0.0  0.5 921348 45056 ?        Sl   01:46   0:12 /usr/lib/firefox/firefox
+jsmith    2311  0.0  0.2 347128 22528 ?        Sl   01:46   0:03 /usr/lib/thunderbird/thunderbird
+
+# ──────────────────────────────────────────────────────────
+# SUSPICIOUS PROCESSES – highlight these in your analysis
+# ──────────────────────────────────────────────────────────
+
+jsmith    3847  2.1  0.6 184320 53248 ?        Ss   02:09   0:14 /tmp/.svc_update
+# ↑ ANOMALY: hidden binary in /tmp, dot-prefixed (T1564.001)
+# ↑ Parent: PID 1 (re-parented after shell spawned it – evasion)
+# ↑ CPU: 2.1% sustained – active C2 beacon or crypto work
+
+jsmith    3851  0.0  0.1  12288  8192 ?        S    02:09   0:00 /tmp/.svc_update --child --mode=beacon
+# ↑ Child worker of .svc_update; --mode=beacon confirms C2 comms
+
+jsmith    3902  0.0  0.1   6144  4096 ?        S    02:10   0:00 sh -c curl -s http://update-svc.blackfalcon-sim.internal/beacon
+# ↑ ANOMALY: curl C2 beacon spawned by .svc_update (T1071.001)
+# ↑ Destination: update-svc.blackfalcon-sim.internal → 10.10.20.20
+
+root      3955  0.4  0.3  98304 28672 ?        S    02:11   0:02 /tmp/.svc_update --privilege-escalation
+# ↑ CRITICAL: .svc_update now running as root – privilege escalation
+# ↑ Technique: SUID abuse or sudo misconfiguration (T1548)
+
+# ──────────────────────────────────────────────────────────
+# ANALYSIS QUESTIONS
+# 1. What is the parent-child relationship of PIDs 3847, 3851, 3902?
+# 2. Why is the filename dot-prefixed (/tmp/.svc_update)?
+# 3. How did PID 3955 gain root from a jsmith process? (check sudo -l, SUID files)
+# 4. Cross-reference PID 3902's curl destination with MISP IoCs.
+# MITRE: T1059.004 (Unix Shell), T1071.001 (C2 HTTP), T1548 (Priv Esc)
+# ──────────────────────────────────────────────────────────

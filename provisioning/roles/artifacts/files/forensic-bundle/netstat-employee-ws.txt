@@ -1,0 +1,57 @@
+==============================================================
+NETWORK CONNECTIONS – employee-ws (10.10.30.10)
+Captured: 2025-11-15 02:10:15 UTC
+Tool: ss -tulpn && ss -antp (SYNTHETIC – NG-SOC LM8 Activity 2.0.3)
+All IP addresses, ports and process names are FICTIONAL training data.
+==============================================================
+
+--- LISTENING SOCKETS (ss -tulpn) ---
+
+Netid  State   Recv-Q  Send-Q  Local Address:Port   Peer Address:Port  Process
+udp    UNCONN  0       0       0.0.0.0:68            0.0.0.0:*          users:(("dhclient",pid=411,fd=6))
+tcp    LISTEN  0       128     0.0.0.0:22            0.0.0.0:*          users:(("sshd",pid=601,fd=3))
+tcp    LISTEN  0       511     0.0.0.0:80            0.0.0.0:*          users:(("apache2",pid=721,fd=4))
+
+--- ESTABLISHED / ACTIVE CONNECTIONS (ss -antp) ---
+
+State        Recv-Q  Send-Q  Local Address:Port        Peer Address:Port        Process
+ESTABLISHED  0       0       10.10.30.10:52341         10.10.20.20:4444         users:((".svc_update",pid=3847,fd=5))
+# ↑ CRITICAL: ESTABLISHED to known C2 IP 10.10.20.20:4444 (T1071.001)
+# ↑ Process: /tmp/.svc_update (PID 3847) – matches suspicious process list
+# ↑ This connection has been active since 02:09:03 UTC
+
+ESTABLISHED  0       0       10.10.30.10:49812         10.10.20.20:4444         users:((".svc_update",pid=3851,fd=3))
+# ↑ Second C2 channel from child worker (redundant beacon)
+
+ESTABLISHED  0       0       10.10.30.10:445           10.10.30.20:49233        users:(("smbd",pid=1501,fd=12))
+# ↑ SMB session to file-server (10.10.30.20) – opened at 02:11:44 UTC
+# ↑ Correlates with Wazuh rule 100003 (lateral movement)
+
+ESTABLISHED  0       0       10.10.30.10:37841         10.10.30.30:22           users:(("ssh",pid=4012,fd=3))
+# ↑ SSH connection to db-server (10.10.30.30) – opened at 02:14:22 UTC
+# ↑ Correlates with Wazuh rule 5715 (successful login after brute-force)
+# ↑ Process owner: root (PID 3955 spawned this after privilege escalation)
+
+ESTABLISHED  0       0       10.10.30.10:54021         8.8.8.8:53               users:(("svc_update",pid=3847,fd=7))
+# ↑ DNS-over-TCP query (unusual – most DNS is UDP)
+# ↑ Possible DNS tunnelling (T1071.004) or large DNS response
+
+TIME-WAIT    0       0       10.10.30.10:52188         10.10.20.20:4444
+# ↑ Closed C2 connection – C2 re-established on new port
+
+--- DNS RESOLUTION LOG (journalctl -u systemd-resolved excerpt) ---
+
+02:09:11 employee-ws systemd-resolved[412]: update-svc.blackfalcon-sim.internal -> 10.10.20.20
+02:09:14 employee-ws systemd-resolved[412]: update-svc.blackfalcon-sim.internal -> 10.10.20.20 (cached)
+02:10:03 employee-ws systemd-resolved[412]: update-svc.blackfalcon-sim.internal -> 10.10.20.20 (cached)
+02:11:41 employee-ws systemd-resolved[412]: file-server.ngsoc-lm8.internal -> 10.10.30.20
+02:14:19 employee-ws systemd-resolved[412]: db-server.ngsoc-lm8.internal -> 10.10.30.30
+
+==============================================================
+ANALYSIS QUESTIONS
+1. Which process holds the C2 connections? Cross-reference PID with process list.
+2. What is significant about TWO connections to 10.10.20.20:4444?
+3. The SSH connection to 10.10.30.30 was opened by root. How did .svc_update gain root?
+4. Why is DNS-over-TCP (port 53 TCP) a potential indicator?
+MITRE: T1071.001 (HTTP C2), T1021.002 (SMB lateral move), T1071.004 (DNS tunnelling)
+==============================================================

@@ -1,0 +1,96 @@
+==============================================================
+FILE METADATA REPORT – employee-ws (10.10.30.10)
+Collected: 2025-11-15 02:10:30 UTC
+Tools: find, stat, sha256sum, file (SYNTHETIC – NG-SOC LM8 Activity 2.0.3)
+All hashes, sizes and timestamps are FICTIONAL training data.
+==============================================================
+
+────────────────────────────────────────────────────────────
+ITEM 1 – PRIMARY DROPPER (malicious)
+────────────────────────────────────────────────────────────
+Path         : /tmp/.svc_update
+File type    : ELF 64-bit LSB executable, x86-64, dynamically linked
+Size         : 1,847,296 bytes (1.76 MB)
+Permissions  : -rwxr-xr-x  (world-executable – suspicious for /tmp)
+Owner        : jsmith
+Created      : 2025-11-15 02:08:58 UTC
+Modified     : 2025-11-15 02:08:58 UTC
+Accessed     : 2025-11-15 02:09:00 UTC
+MD5          : aabbccdd11223344aabbccdd11223344
+SHA256       : deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb
+NOTES:
+  - Filename uses dot-prefix for hiding in directory listings (T1564.001)
+  - Creation timestamp matches phishing email delivery + macro execution window
+  - SHA256 matches Black Falcon IoC in MISP (see Event #1001)
+  - Binary packed/obfuscated: strings output minimal; UPX header absent but
+    entropy ~7.9 (consistent with custom packer)
+  - Linked libraries: libssl.so.3, libcurl.so.4 (network capability confirmed)
+
+────────────────────────────────────────────────────────────
+ITEM 2 – PHISHING DELIVERY DOCUMENT (initial access vector)
+────────────────────────────────────────────────────────────
+Path         : /home/jsmith/Downloads/Q4-wire-transfer-auth.docm
+File type    : Microsoft Word 2007+ (ZIP container, macros present)
+Size         : 251,904 bytes (246 KB)
+Permissions  : -rw-r--r--
+Owner        : jsmith
+Created      : 2025-11-15 02:05:12 UTC  (email received)
+Modified     : 2025-11-15 02:08:44 UTC  (opened and macros executed)
+Accessed     : 2025-11-15 02:08:44 UTC
+MD5          : aabbccdd11223344aabbccdd11223344
+SHA256       : deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb
+NOTES:
+  - SHA256 matches Black Falcon IoC in MISP
+  - Modification timestamp 02:08:44 – 14 seconds before dropper appears
+  - .docm extension indicates macro-enabled Word document (T1204.002)
+  - OLE stream analysis (simulated): AutoOpen macro present; calls WScript.Shell
+    to drop and execute /tmp/.svc_update
+
+────────────────────────────────────────────────────────────
+ITEM 3 – PERSISTENCE MECHANISM (scheduled task / cron)
+────────────────────────────────────────────────────────────
+Path         : /var/spool/cron/crontabs/jsmith
+File type    : ASCII text
+Size         : 142 bytes
+Permissions  : -rw-------
+Owner        : root (cron daemon)
+Modified     : 2025-11-15 02:09:05 UTC
+SHA256       : 11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd
+Content (simulated):
+  # m h dom mon dow command
+  */5 * * * * /tmp/.svc_update --mode=beacon --quiet 2>/dev/null
+NOTES:
+  - Cron entry created at 02:09:05 – 7 seconds after dropper first executed
+  - Runs beacon every 5 minutes for persistence (T1053.003 – Cron)
+  - /dev/null redirect hides output to reduce detection
+
+────────────────────────────────────────────────────────────
+ITEM 4 – RANSOMWARE NOTE (lateral movement target: file-server)
+────────────────────────────────────────────────────────────
+Path         : /srv/shares/finance/README_RESTORE.txt  (on file-server 10.10.30.20)
+File type    : ASCII text
+Size         : 1,842 bytes
+Permissions  : -rw-r--r--
+Owner        : jsmith
+Created      : 2025-11-15 02:15:48 UTC
+Modified     : 2025-11-15 02:15:48 UTC
+SHA256       : cafebabe00112233445566778899aabbccddeeff00112233445566778899cafe
+Content preview (simulated – inert):
+  YOUR FILES HAVE BEEN ENCRYPTED [SIMULATION ONLY – NOT REAL]
+  Send 0.5 BTC to address: 1BlackFalconSimXXXXXXXXXXXXXXXX
+  [THIS IS A TRAINING ARTEFACT – NO REAL ENCRYPTION OCCURRED]
+NOTES:
+  - Dropped after 47 files renamed to .locked in /srv/shares/finance/
+  - Bitcoin address is FICTIONAL; do not attempt any transaction
+  - Correlates with Wazuh rule 100004 and 553
+
+==============================================================
+ANALYSIS QUESTIONS
+1. Calculate time delta: phishing email open → dropper execution. What does it mean?
+2. Which two items share the same SHA256? Is that plausible? Why/why not?
+3. The cron entry was created 7 seconds after dropper execution. What does this suggest
+   about the malware's capabilities?
+4. Why is /tmp a common dropper location? What mitigations would prevent execution there?
+5. What forensic artefacts would survive a reboot? Which would not?
+MITRE: T1204.002, T1564.001, T1053.003, T1486 (ransomware), T1083
+==============================================================

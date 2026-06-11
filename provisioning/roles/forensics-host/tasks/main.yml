@@ -30,6 +30,7 @@
     name: volatility3
     state: present
     executable: pip3
+    extra_args: "--break-system-packages"
   ignore_errors: true
 
 - name: Create DFIR workspace directories
@@ -53,11 +54,17 @@
     mode: "0755"
   ignore_errors: true
 
+- name: Ensure Velociraptor config directory exists
+  ansible.builtin.file:
+    path: /etc/velociraptor
+    state: directory
+    mode: "0700"
+
 - name: Generate Velociraptor server configuration
-  ansible.builtin.command:
-    cmd: /usr/local/bin/velociraptor config generate -i
-    stdin: "{{ velociraptor_server_ip }}\n{{ velociraptor_port }}\n/opt/velociraptor/datastore\n"
+  ansible.builtin.shell:
+    cmd: /usr/local/bin/velociraptor config generate > /etc/velociraptor/server.config.yaml
     creates: /etc/velociraptor/server.config.yaml
+    executable: /bin/bash
   ignore_errors: true
 
 - name: Create Velociraptor data directory

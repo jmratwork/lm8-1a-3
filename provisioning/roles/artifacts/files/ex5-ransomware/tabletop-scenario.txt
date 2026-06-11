@@ -1,0 +1,139 @@
+==============================================================
+EXERCISE 5 – RANSOMWARE TABLETOP SCENARIO
+NG-SOC LM8 – CyberRangeCZ/KYPO Training
+Classification: RESTRICTED (Training Only)
+ENTIRELY FICTIONAL – No real organisations, credentials or infrastructure
+==============================================================
+
+SCENARIO TITLE: "Operation Locked Ledger"
+
+BACKGROUND
+  Nordik Bank (SIMULATED entity) operates 12 branch offices and a central
+  data centre. On Monday morning at 06:15 UTC, the IT Service Desk begins
+  receiving calls from branch staff unable to access shared drives.
+  By 06:30, it is clear that a ransomware incident is underway.
+
+  You are the Incident Response team. The Incident Commander has called
+  an emergency bridge. It is now 06:45 UTC.
+
+──────────────────────────────────────────────────────────────
+INJECT 1 – 06:45 UTC: INITIAL ASSESSMENT
+──────────────────────────────────────────────────────────────
+
+Known facts at 06:45 UTC:
+  - File servers FS-01 through FS-08 are OFFLINE or showing encrypted files
+  - File extension .locked is visible on 4 of 8 servers (partial encryption)
+  - FS-09 through FS-12 appear unaffected
+  - A ransom note "README_RESTORE.txt" has been found on affected shares
+  - Ransom demand: 12 BTC (~EUR 480,000 at current rate) within 48 hours
+  - Backups: last known-good backup is 2025-11-08 (7 days old)
+  - Unknown whether data was exfiltrated before encryption
+
+DISCUSSION QUESTIONS – INJECT 1:
+  a) What are your IMMEDIATE containment actions (first 15 minutes)?
+  b) Who needs to be notified RIGHT NOW (internal + external)?
+  c) Do you isolate ALL servers including the apparently unaffected FS-09–12?
+     What are the trade-offs?
+  d) What evidence do you preserve before taking systems offline?
+
+──────────────────────────────────────────────────────────────
+INJECT 2 – 07:30 UTC: SCOPE EXPANDS
+──────────────────────────────────────────────────────────────
+
+New information at 07:30 UTC:
+  - Forensics team finds ransomware binary on ALL 12 file servers;
+    FS-09–12 were infected but encryption had not yet started
+  - The ransomware operator's leak site (found via TOR) lists Nordik Bank
+    and claims to have exfiltrated 2.4 TB of customer data
+  - The initial access vector appears to be a phishing email sent to 3 staff
+    on 2025-11-08 (7 days ago); one user opened a malicious attachment
+  - Legal is asking: do we have a GDPR notification obligation? Timeline?
+
+DISCUSSION QUESTIONS – INJECT 2:
+  a) Does the threat actor's leak-site claim change your decision on paying?
+  b) What is the GDPR notification obligation? (72-hour clock from what point?)
+  c) What data classification did the exfiltrated files likely contain?
+  d) The attacker had 7 days of dwell time. What could they have done besides
+     deploy ransomware? (persistence, further lateral movement, data staging)
+  e) Revise your containment perimeter in light of this information.
+
+──────────────────────────────────────────────────────────────
+INJECT 3 – 10:00 UTC: MANAGEMENT DECISION POINT
+──────────────────────────────────────────────────────────────
+
+Management brings three options to the team:
+  Option A: Pay the ransom (BTC payment, possible decryption key)
+  Option B: Restore from backup (7-day data loss; ~72h estimated recovery)
+  Option C: Hybrid – begin restoration while legal evaluates payment as leverage
+
+Additional context:
+  - Cyber insurance policy has a EUR 250,000 sublimit for ransomware payments
+  - The decryption tool provided by ransomware groups works in ~65% of cases
+  - Branch operations without file servers = EUR ~85,000/day lost revenue
+  - Customer-facing online banking is NOT affected (separate infrastructure)
+  - Regulatory authority (ECB/BaFin equivalent) has been informally notified
+
+DISCUSSION QUESTIONS – INJECT 3:
+  a) What is your recommendation to management? Argue for your choice.
+  b) What factors would change your recommendation?
+  c) What do you tell the media if they ask? (draft a 2-sentence statement)
+  d) How do you handle staff communications to prevent panic/leaks?
+  e) At what point do you bring law enforcement (Europol / national CERT) in?
+
+──────────────────────────────────────────────────────────────
+INJECT 4 – 36 HOURS LATER: RECOVERY PHASE
+──────────────────────────────────────────────────────────────
+
+Situation at T+36h:
+  - Team chose Option B (no payment). Restoration is 60% complete.
+  - One restored server (FS-03) re-encrypted 4 hours after restoration.
+    This suggests the attacker still has persistence in the environment.
+  - The threat actor has published 50 MB of sample data on their leak site.
+  - Staff morale is low; 3 IT staff are on sick leave due to stress.
+  - Board has requested a full post-incident report within 14 days.
+
+DISCUSSION QUESTIONS – INJECT 4:
+  a) What must you do BEFORE re-restoring FS-03 (and the other servers)?
+  b) How do you find and remove attacker persistence across 12 servers?
+  c) What is the minimum viable "Lessons Learned" report structure?
+  d) What long-term security controls would have prevented this attack?
+     Prioritise the top 3 by effort vs impact.
+  e) The attacker published customer data. What are your obligations to
+     affected customers?
+
+──────────────────────────────────────────────────────────────
+ROLES FOR TABLETOP (assign before starting)
+──────────────────────────────────────────────────────────────
+
+  Incident Commander  – coordinates all decisions, owns the bridge
+  SOC Lead            – provides technical analysis, owns the SIEM view
+  IT Operations       – owns server/network isolation actions
+  Legal / Compliance  – GDPR, regulatory notifications, payment legality
+  Communications      – internal comms, media, customer notification
+  CISO / Management   – resource authorisation, strategic decisions
+  External IR (optional) – can be added in Inject 2 as a new participant
+
+──────────────────────────────────────────────────────────────
+DEBRIEF CHECKLIST
+──────────────────────────────────────────────────────────────
+
+After the exercise, review whether the team:
+  [ ] Isolated affected systems within 15 minutes of confirmation
+  [ ] Preserved forensic evidence before wiping/restoring
+  [ ] Correctly identified the GDPR 72-hour notification trigger and scope
+  [ ] Made a documented, justified decision on payment
+  [ ] Identified and removed attacker persistence before restoring
+  [ ] Produced a crisis communication suitable for customers
+  [ ] Identified at least 3 preventive controls for the post-incident report
+
+==============================================================
+FACILITATOR NOTES (not for participants):
+- Correct answer to Inject 4a: rebuild from CLEAN baseline + change all
+  credentials before restoring; persistence was via scheduled task + new
+  local admin account created during dwell time.
+- GDPR trigger: the 72-hour clock starts when the DPO is formally notified
+  of a breach likely to result in risk to individuals – not at discovery.
+- Payment legality: in EU, payment to sanctioned entities is prohibited.
+  Facilitator may reveal the ransomware group is on EU sanctions list
+  after Option A is chosen, to force reconsideration.
+==============================================================

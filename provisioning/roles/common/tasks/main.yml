@@ -15,12 +15,27 @@
     group: root
     mode: "0644"
 
+- name: Detect Kali APT repositories
+  ansible.builtin.shell:
+    cmd: grep -rqsiE 'kali\.(org|download)|kali-rolling' /etc/apt/sources.list /etc/apt/sources.list.d/
+  register: kali_repo_present
+  changed_when: false
+  failed_when: false
+
+- name: Download Kali archive signing key
+  ansible.builtin.get_url:
+    url: https://archive.kali.org/archive-key.asc
+    dest: /tmp/kali-archive-key.asc
+    mode: "0644"
+  when: kali_repo_present.rc == 0
+
 - name: Refresh Kali archive keyring
   ansible.builtin.shell:
-    cmd: >-
-      curl -fsSL https://archive.kali.org/archive-key.asc
-      | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
-  when: ansible_distribution == "Kali GNU/Linux"
+    cmd: |
+      gpg --dearmor < /tmp/kali-archive-key.asc > /usr/share/keyrings/kali-archive-keyring.gpg
+      cp /tmp/kali-archive-key.asc /etc/apt/trusted.gpg.d/kali-archive-keyring.asc
+    executable: /bin/bash
+  when: kali_repo_present.rc == 0
   changed_when: true
 
 - name: Update apt cache (Debian/Ubuntu)

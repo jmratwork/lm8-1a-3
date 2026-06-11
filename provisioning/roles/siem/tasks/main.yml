@@ -119,7 +119,7 @@
 - name: Run Wazuh all-in-one installer (indexer + dashboard + manager)
   ansible.builtin.command:
     cmd: "bash /opt/wazuh-install.sh -a -i"
-    creates: /etc/wazuh-dashboard/opensearch_dashboards.yml
+    creates: /var/ossec/etc/ossec.conf
   environment:
     JAVA_TOOL_OPTIONS: "-Xms{{ opensearch_heap_size }} -Xmx{{ opensearch_heap_size }}"
   ignore_errors: true
