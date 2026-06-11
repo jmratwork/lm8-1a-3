@@ -109,9 +109,9 @@
   ansible.builtin.copy:
     dest: /var/www/html/index.html
     content: |
-      <html><head><title>BlackFalcon C2 Panel</title></head>
+      <html><head><title>Black Falcon C2 Panel</title></head>
       <body>
-        <h2>BlackFalcon Banking Trojan C2 – Control Panel</h2>
+        <h2>Black Falcon Banking Trojan C2 – Control Panel</h2>
         <p>Version: 2.1.4-sim | Build: 20250101-NGSOC-TRAINING</p>
         <p style="color:red"><b>TRAINING ENVIRONMENT – SYNTHETIC DATA ONLY</b></p>
         <p>Registered bots: 1 | Active sessions: 1</p>

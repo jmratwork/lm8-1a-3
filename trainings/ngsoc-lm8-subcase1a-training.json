@@ -1,0 +1,1546 @@
+{
+  "title": "NG-SOC Learning Module 8 - Incident Response and Forensics (Sub Case 1a)",
+  "description": "Instructor-led, cyber-range edition of NG-SOC D5.8 Learning Module 8. 30 console-based levels covering the full incident-response lifecycle across five ECSF roles (SOC Analyst, Incident Responder, CTI Analyst, Penetration Tester, IR Coordinator) plus the three Sub Case 1a practical activities, using the lm8-1a-3 sandbox (Wazuh SIEM, vulnerable banking app, C2 simulation, ransomware artefacts, DFIR toolset, MISP, Kali). Aligned to NIST SP 800-61r2, ENISA ECSF and MITRE ATT&CK.",
+  "prerequisites": [
+    "Basic Linux command line (ssh, ls, cat, grep, jq, curl).",
+    "Familiarity with the incident-response lifecycle (NIST SP 800-61r2).",
+    "Awareness of SIEM alert triage and basic networking (IP, ports, DNS)."
+  ],
+  "outcomes": [
+    "Apply incident-response procedures across all IR lifecycle phases.",
+    "Perform SIEM-based alert analysis and triage (Wazuh) to separate true threats from noise.",
+    "Use threat intelligence (MISP/IoCs) to inform proactive defence.",
+    "Conduct forensic analysis and malware/ransomware impact assessment with DFIR tooling.",
+    "Simulate adversary behaviour ethically against a banking app and report findings (ATT&CK).",
+    "Coordinate and evaluate an IR plan via a ransomware tabletop and produce an After-Action Report."
+  ],
+  "state": "UNRELEASED",
+  "levels": [
+    {
+      "title": "Module 8 - Overview & House Rules",
+      "level_type": "INFO_LEVEL",
+      "order": 0,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "# NG-SOC Learning Module 8 - Incident Response and Forensics (Sub Case 1a)\n\nWelcome to the instructor-led, cyber-range edition of **Learning Module 8**. Over **39 levels** you will work the full incident-response lifecycle (NIST SP 800-61r2: *Preparation -> Detection & Analysis -> Containment, Eradication & Recovery -> Post-Incident*) across the five ECSF-aligned roles of the module:\n\n| Exercise | Role (ECSF) | Levels |\n|---|---|---|\n| Practical 2.0.1 | Multi-channel spear-phishing | 9-10 |\n| Practical 2.0.2 | Collaborative response chain | 11-12 |\n| Practical 2.0.3 | Express forensic report | 20-24 |\n| **Ex. 1** | SOC Analyst - Triage | 2-8 |\n| **Ex. 2** | Incident Responder - Containment/Eradication | 13-19 |\n| **Ex. 3** | CTI Analyst - *Black Falcon* briefing | 25-29 |\n| **Ex. 4** | Penetration Tester - banking system | 30-33 |\n| **Ex. 5** | IR Coordinator - ransomware tabletop | 34-37 |\n\n**The scenario.** A financial institution running an online-banking platform is targeted by the fictitious **\"Black Falcon\"** campaign: spear-phishing -> trojan on a workstation -> C2 beacon -> lateral movement -> ransomware on the file server. Every artefact in this range is **synthetic and contained**.\n\n**How answers work.** Most levels are *console* tasks: you log into a sandbox host and use the tools provisioned by the range (Wazuh, `jq`, `grep`, `nmap`, `curl`, The Sleuth Kit, `strings`, MISP, Kali) to recover a **flag** - a real value present on the machines. Submit it exactly as shown.\n\n**Reference frameworks** used throughout: NIST SP 800-61r2, ENISA ECSF, MITRE ATT&CK, FIRST CSIRT Services Framework.\n\n> Tip: use the **Chrome** browser. If a submission misbehaves, log out and back in.\n"
+    },
+    {
+      "title": "Access the Range",
+      "level_type": "ACCESS_LEVEL",
+      "order": 1,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "passkey": "ngsoc-start",
+      "cloud_content": "Before any analysis you must reach the range. The topology appears on the right.\n\n### Connect\n1. In the topology, right-click a host (start with **`analyst-host`** or **`siem`**) -> **Open console**.\n2. Log in as **`analyst`** (the student account provisioned on every node). For multi-hop access to the internal segments, use **`proxy-jump`** as the SSH jump host.\n3. Useful segments: **DMZ** `10.10.20.0/24`, **Corporate** `10.10.30.0/24`, **Security-tools** `10.10.40.0/24`, **Red-team** `10.10.50.0/24`.\n\nWhen connected, submit the passkey **`ngsoc-start`** to begin.\n\nSSH access (easier copy-paste) is described in the [sandbox-access docs](https://docs.platform.cyberrange.cz/user-guide-advanced/sandboxes/sandbox-access/).",
+      "local_content": "This training is designed for the cloud sandbox. Local-sandbox access has not been validated for this topology."
+    },
+    {
+      "title": "Exercise 1 - Suspicious Network Activity (SOC Analyst Triage)",
+      "level_type": "INFO_LEVEL",
+      "order": 2,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "## Scenario (Detection & Analysis)\nNight shift at the SOC. The **SIEM (`siem`, 10.10.40.10, Wazuh manager)** alerts on unusual outbound traffic from an employee workstation toward an IP **known for hosting banking malware**, and the endpoint agent logs a *\"possible Trojan infection.\"* No user has reported anything yet.\n\n**Your role - SOC Analyst (Tier 1).** Triage the alert: decide real incident vs. false positive, capture IoCs, take proportionate first containment, and prepare a clean hand-over.\n\nThe pre-seeded detection content lives on `siem`:\n- Custom rules: `/var/ossec/etc/rules/ngsoc_lm8_rules.xml`\n- Pre-seeded alert bundle: `/opt/ngsoc-alerts/ex1-preseeded-alerts.json`\n\nLevels 3-7 walk the **observables**; level 8 assesses your **triage decision**.\n"
+    },
+    {
+      "title": "Alert Analysis - the C2 IP address",
+      "level_type": "TRAINING_LEVEL",
+      "order": 3,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "10.10.20.20",
+      "answer_variable_name": null,
+      "content": "Open the pre-seeded alert bundle on **`siem`** and read the highest-severity alert (Wazuh **rule 100001**, level 13: *outbound connection to a known Black Falcon C2 IP*).\n\n**Flag:** the destination C2 **IPv4 address** the workstation is beaconing to.",
+      "solution": "1. On `siem`: `sudo cat /opt/ngsoc-alerts/ex1-preseeded-alerts.json | jq '.[]? // .'` - or simply `grep -o '\"dstip\":\"[^\"]*\"' /opt/ngsoc-alerts/ex1-preseeded-alerts.json`.\n2. Cross-check the rule text: `grep -A2 'rule id=\"100001\"' /var/ossec/etc/rules/ngsoc_lm8_rules.xml`.\n3. The destination is **`${ANSWER}`** (host `c2-server`).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Where to look",
+          "content": "The file `/opt/ngsoc-alerts/ex1-preseeded-alerts.json` on `siem` contains the alert in JSON. `jq` and `grep` are installed.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Field name",
+          "content": "Look for the `dstip` field, or read the description of Wazuh rule 100001.",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0011.T1071"
+        }
+      ],
+      "expected_commands": [
+        "cat",
+        "jq",
+        "grep"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Alert Analysis - the C2 port",
+      "level_type": "TRAINING_LEVEL",
+      "order": 4,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "4444",
+      "answer_variable_name": null,
+      "content": "Same alert. The beacon is not using a normal web port - that is part of why it is suspicious.\n\n**Flag:** the destination **TCP port** of the C2 channel.",
+      "solution": "1. `grep -o '\"dstport\":\"[^\"]*\"' /opt/ngsoc-alerts/ex1-preseeded-alerts.json` on `siem`.\n2. Rule 100001 names it explicitly: `10.10.20.20:${ANSWER}`.\n3. Port **`${ANSWER}`** is a classic non-standard C2 listener port (Metasploit default).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Non-standard port",
+          "content": "Web traffic is 80/443. The alert flags a *different* port - read `dstport` in the JSON.",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0011.T1571"
+        }
+      ],
+      "expected_commands": [
+        "grep",
+        "jq"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Alert Analysis - the C2 domain (DNS IoC)",
+      "level_type": "TRAINING_LEVEL",
+      "order": 5,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "update-svc.blackfalcon-sim.internal",
+      "answer_variable_name": null,
+      "content": "A separate, lower-severity alert (Wazuh **rule 100005**) fired for a **DNS query to the campaign's C2 domain**. The same name is visible in the syslog the workstation generated (tag `svc_update` on **`employee-ws`**).\n\n**Flag:** the fully-qualified **C2 domain name**.",
+      "solution": "1. On `siem`: `grep dns_query /opt/ngsoc-alerts/ex1-preseeded-alerts.json`.\n2. Or on `employee-ws`: `grep svc_update /var/log/syslog` and read the *suspicious DNS query* line.\n3. The C2 domain is **`${ANSWER}`** (it resolves to `10.10.20.20` in `/etc/hosts`).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Two places to look",
+          "content": "Either the pre-seeded JSON on `siem` (`dns_query`) or the syslog on `employee-ws` (`grep svc_update /var/log/syslog`).",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0011.T1071"
+        }
+      ],
+      "expected_commands": [
+        "grep",
+        "jq"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Endpoint Analysis - the malware process stub",
+      "level_type": "TRAINING_LEVEL",
+      "order": 6,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "/tmp/.svc_update",
+      "answer_variable_name": null,
+      "content": "Move to the affected host **`employee-ws`** (10.10.30.10). The endpoint agent flagged a *possible Trojan*. A planted **executable stub** is masquerading as a service updater.\n\n**Flag:** the **absolute path** of the malicious stub file.",
+      "solution": "1. On `employee-ws`: `ls -la /tmp/ | grep -i svc` (note the leading dot - it is hidden).\n2. Confirm it is referenced by the alert (`process` field) and by the beacon.\n3. The stub is **`${ANSWER}`** (MITRE T1543 - persistent service stub).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Hidden file",
+          "content": "It lives in `/tmp` and the name starts with a dot, so use `ls -la /tmp`.",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0003.T1543"
+        }
+      ],
+      "expected_commands": [
+        "ls",
+        "find"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Endpoint Analysis - the persistence mechanism",
+      "level_type": "TRAINING_LEVEL",
+      "order": 7,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "/etc/cron.d/svc-update",
+      "answer_variable_name": null,
+      "content": "Still on `employee-ws`. The malware keeps itself alive on a schedule (MITRE **T1053.005 - Scheduled Task/Job: Cron**).\n\n**Flag:** the **absolute path** of the cron file that re-launches the beacon.",
+      "solution": "1. `ls -la /etc/cron.d/` and inspect entries: `cat /etc/cron.d/svc-update`.\n2. It periodically runs `/opt/c2-beacon/beacon.sh`.\n3. The persistence file is **`${ANSWER}`**.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Where cron jobs live",
+          "content": "System cron fragments are in `/etc/cron.d/`. List that directory.",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0003.T1053"
+        }
+      ],
+      "expected_commands": [
+        "ls",
+        "cat"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Exercise 1 - Triage Decision (Assessment)",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 8,
+      "estimated_duration": 8,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "Which phase of the NIST SP 800-61r2 incident-response lifecycle are you in for this event?",
+          "points": 50,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Preparation",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Detection & Analysis",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Containment, Eradication & Recovery",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Post-Incident Activity",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Given a confirmed C2 beacon plus an endpoint Trojan alert on a corporate host, the correct triage action is to:",
+          "points": 50,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Close as false positive",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Escalate to the CSIRT / on-call Incident Responder and begin containment",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Wait for a user to report a problem",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Reimage silently without notifying anyone",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "FFQ",
+          "text": "Which Wazuh rule ID fired for the outbound C2 connection? (number only)",
+          "points": 50,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "100001",
+              "correct": true,
+              "order": 0
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "A proportionate *immediate* containment step during analysis would be to:",
+          "points": 50,
+          "penalty": 0,
+          "order": 3,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Power off the entire corporate segment",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Network-isolate the affected workstation and block the C2 IP/port at the perimeter",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Pay attention but take no action",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        }
+      ],
+      "instructions": "Answer as the on-duty SOC analyst writing the initial incident record. Use what you found in levels 3-7.",
+      "assessment_type": "TEST"
+    },
+    {
+      "title": "Practical 2.0.1 - Multi-channel Spear-Phishing Simulation",
+      "level_type": "INFO_LEVEL",
+      "order": 9,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "## Purpose\nThe initial access for *Black Falcon* is **spear-phishing across channels** (email, SMS, voice-call script). The red-team artefacts are staged on **`kali`** (10.10.50.10); the **triage note template** you must fill is staged with the student hand-outs on **`db-server`** (`/home/analyst/handouts/`).\n\n**Assessed learner outputs:** a phishing **triage note** (lure theme, intent, immediate risk), a list of **observables** (sender domains, URLs, attachment hashes), and a **recommended response action set**.\n\nLevel 10 confirms you can locate the triage-note template you will complete and hand over.\n"
+    },
+    {
+      "title": "Phishing triage - locate the triage-note template",
+      "level_type": "TRAINING_LEVEL",
+      "order": 10,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "phishing-triage-note.md",
+      "answer_variable_name": null,
+      "content": "On **`db-server`**, the instructor staged the analyst hand-out templates under `/home/analyst/handouts/`. Find the one used to record a phishing triage.\n\n**Flag:** the **filename** (just the name, e.g. `something.md`) of the phishing triage-note template.",
+      "solution": "1. On `db-server`: `ls /home/analyst/handouts/`.\n2. The phishing triage template is **`${ANSWER}`**; open it with `cat` to see the required fields (lure theme, observables, response actions).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Hand-out directory",
+          "content": "Templates are under `/home/analyst/handouts/` on `db-server`. List it.",
+          "hint_penalty": 10,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0001.T1566"
+        }
+      ],
+      "expected_commands": [
+        "ls",
+        "cat"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Practical 2.0.2 - Collaborative Response Chain",
+      "level_type": "INFO_LEVEL",
+      "order": 11,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "## Purpose\nIncident handling as a coordinated team using REP collaboration features: a **task board**, a **decision log**, a **SITREP** for management, and **hand-over notes**. The corresponding templates are staged on **`db-server`** under `/home/analyst/handouts/`.\n\n**Assessed outputs:** maintained task/action list, decision log with rationale, concise SITREP, clear hand-over notes - consistent with each other.\n"
+    },
+    {
+      "title": "Collaboration - locate the SITREP template",
+      "level_type": "TRAINING_LEVEL",
+      "order": 12,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "sitrep-template.md",
+      "answer_variable_name": null,
+      "content": "Still on **`db-server`** (`/home/analyst/handouts/`), identify the **situation-report** template the team uses to brief management.\n\n**Flag:** the **filename** of the SITREP template.",
+      "solution": "1. On `db-server`: `ls /home/analyst/handouts/` - you will also see `decision-log.md` and `handover-notes.md`.\n2. The management situation report is **`${ANSWER}`**.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Naming",
+          "content": "SITREP = situation report. Look for the template whose name contains `sitrep`.",
+          "hint_penalty": 10,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [
+        "ls",
+        "cat"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Exercise 2 - Containment & Eradication of a Targeted Attack (Incident Responder)",
+      "level_type": "INFO_LEVEL",
+      "order": 13,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "## Scenario (Containment, Eradication & Recovery)\nThe SOC has **confirmed** a targeted intrusion: a web-server vulnerability on **`web-banking`** (10.10.20.10) was exploited, malware spread, and **critical customer data may have been exfiltrated**. The CSIRT is engaged and the IR plan is active. Persistence and covert channels are in play.\n\n**Your role - Incident Responder (CSIRT Analyst).** Scope the compromise, contain, eradicate, and investigate - preserving evidence (write-blockers, hashing, chain-of-custody). This exercise also delivers the **Express Forensic Report (Practical 2.0.3)**: use the DFIR tools on **`analyst-host`** (The Sleuth Kit, `strings`/binutils, `binwalk`, `foremost`, `hashdeep`, Volatility 3) to build a timeline from the artefacts.\n\nLevels 14-18 are the technical investigation; level 19 assesses eradication & forensic fundamentals.\n"
+    },
+    {
+      "title": "Incident Scoping - the information-disclosure artefact",
+      "level_type": "TRAINING_LEVEL",
+      "order": 14,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "db_backup_2025-01-15.sql.gz.txt",
+      "answer_variable_name": null,
+      "content": "Exploitation of `web-banking` left a classic **information-disclosure** finding: a world-readable *backup* file under the app's public `/backup` directory (`/var/www/html/banking/backup/`). An attacker (or you) can fetch it over HTTP.\n\n**Flag:** the **filename** of the synthetic backup file exposed in `/backup`.",
+      "solution": "1. From `kali` or `analyst-host`: `curl -s http://10.10.20.10/backup/` (directory listing) - or on `web-banking`: `ls /var/www/html/banking/backup/`.\n2. The exposed artefact is **`${ANSWER}`** (MITRE T1083 - File and Directory Discovery).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Two ways",
+          "content": "Over HTTP with `curl http://10.10.20.10/backup/`, or locally `ls /var/www/html/banking/backup/` on `web-banking`.",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0007.T1083"
+        }
+      ],
+      "expected_commands": [
+        "curl",
+        "ls"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Forensics - identify patient zero",
+      "level_type": "TRAINING_LEVEL",
+      "order": 15,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "10.10.30.10",
+      "answer_variable_name": null,
+      "content": "Reconstruct the intrusion path. The **first** compromised internal host (*patient zero*) is the workstation that received the phishing payload and beaconed to C2.\n\n**Flag:** the **IPv4 address** of patient zero.",
+      "solution": "1. The C2 alerts (Ex.1) and the planted stub/cron all point at `employee-ws`.\n2. Confirm its address: on `employee-ws` run `ip -4 addr` or check `/etc/hosts`.\n3. Patient zero is **`${ANSWER}`** (`employee-ws`, corporate segment).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Trace it back",
+          "content": "Patient zero is the host with the Trojan stub and the C2 beacon from Exercise 1.",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0001.T1566"
+        }
+      ],
+      "expected_commands": [
+        "ip",
+        "cat",
+        "grep"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Forensics - recover the ransomware key ID",
+      "level_type": "TRAINING_LEVEL",
+      "order": 16,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "BF-2025-0042-SIM",
+      "answer_variable_name": null,
+      "content": "The intrusion ended in **ransomware** on **`file-server`** (10.10.30.20). Read the ransom note in the share (`/srv/data/README-RANSOM.txt`) and extract the campaign's tracking identifier.\n\n**Flag:** the **decryption Key ID** quoted in the note.",
+      "solution": "1. On `file-server`: `grep -i 'Key ID' /srv/data/README-RANSOM.txt` (also present in each `.locked` file header).\n2. The key ID is **`${ANSWER}`** (MITRE T1486 - Data Encrypted for Impact).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Grep the note",
+          "content": "`grep -i 'key id' /srv/data/README-RANSOM.txt` on `file-server`.",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0040.T1486"
+        }
+      ],
+      "expected_commands": [
+        "grep",
+        "cat",
+        "ls"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Impact - count the encrypted files",
+      "level_type": "TRAINING_LEVEL",
+      "order": 17,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "10",
+      "answer_variable_name": null,
+      "content": "Quantify the impact on `file-server`. The ransomware renamed business documents with a **`.locked`** extension in the data share `/srv/data`.\n\n**Flag:** the **number** of `.locked` files in `/srv/data` (digits only).",
+      "solution": "1. On `file-server`: `ls /srv/data/*.locked | wc -l`.\n2. There are **`${ANSWER}`** simulated-encrypted files (reports, payroll, exports, board deck, IR plan, etc.).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Count with the shell",
+          "content": "`ls /srv/data/*.locked | wc -l`.",
+          "hint_penalty": 10,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0040.T1486"
+        }
+      ],
+      "expected_commands": [
+        "ls",
+        "wc"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Eradication - find the beacon script to remove",
+      "level_type": "TRAINING_LEVEL",
+      "order": 18,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "/opt/c2-beacon/beacon.sh",
+      "answer_variable_name": null,
+      "content": "Eradication means removing **every** foothold. Besides the cron job (Ex.1), the actual beacon logic the cron calls must be deleted from `employee-ws`.\n\n**Flag:** the **absolute path** of the beacon script.",
+      "solution": "1. On `employee-ws`: read the cron file `cat /etc/cron.d/svc-update` - it invokes the script.\n2. Or `ls -R /opt/c2-beacon/`.\n3. The beacon to remove is **`${ANSWER}`** (delete the script, the cron, and the `/tmp/.svc_update` stub; then block C2 at the perimeter).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Follow the cron",
+          "content": "The cron fragment from Exercise 1 names the script it runs - read it.",
+          "hint_penalty": 15,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0011.T1071"
+        },
+        {
+          "technique_key": "TA0005.T1070"
+        }
+      ],
+      "expected_commands": [
+        "cat",
+        "ls"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Exercise 2 - Eradication & Forensic Fundamentals (Assessment)",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 19,
+      "estimated_duration": 8,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "To preserve evidence integrity when imaging a disk you should:",
+          "points": 50,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Mount it read-write and copy files",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Use a write-blocker and record cryptographic hashes (chain-of-custody)",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Reboot the host first",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "FFQ",
+          "text": "Which MITRE ATT&CK technique ID describes the ransomware impact (data encrypted for impact)?",
+          "points": 50,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "T1486",
+              "correct": true,
+              "order": 0
+            }
+          ]
+        },
+        {
+          "question_type": "FFQ",
+          "text": "Which MITRE ATT&CK technique ID describes exploiting the public-facing banking web app?",
+          "points": 50,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "T1190",
+              "correct": true,
+              "order": 0
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Before declaring recovery complete, you should:",
+          "points": 50,
+          "penalty": 0,
+          "order": 3,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Restore from clean backups, patch the exploited flaw on ALL servers, rotate credentials and verify no malicious outbound traffic",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "Bring systems straight back online to reduce downtime",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "Only clean the first host found",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        }
+      ],
+      "instructions": "Express-forensic-report fundamentals (Practical 2.0.3) and eradication/recovery good practice.",
+      "assessment_type": "TEST"
+    },
+    {
+      "title": "Practical 2.0.3 - Express Forensic Report",
+      "level_type": "INFO_LEVEL",
+      "order": 20,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "# Practical 2.0.3 - Express Forensic Report\n\nD5.8 Section 2.0.3 defines an **express forensic report** built under time pressure from a curated artefact bundle. The bundle is deployed on **`analyst-host`** at `/opt/ngsoc-artifacts/forensic-bundle/`:\n\n| Artefact | Use |\n|---|---|\n| `wazuh-alerts-ex2.json` | SIEM alert stream (C2, lateral movement, brute-force, encryption) |\n| `netstat-employee-ws.txt` | live connections on patient zero |\n| `endpoint-process-list.txt` | `ps aux` snapshot |\n| `file-metadata.txt` | dropper hashes/timestamps |\n| `timeline-clues.txt` | partial timeline to complete |\n\nWork the next three flags from this bundle, then complete the assessment. Map every claim to the 7-heading express-report template at `~/reports/express-forensic-report.md` (Scope, Artefacts, Timeline, Findings, Indicators, Impact, Recommendations)."
+    },
+    {
+      "title": "Forensics - lateral-movement destination host",
+      "level_type": "TRAINING_LEVEL",
+      "order": 21,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "10.10.30.20",
+      "answer_variable_name": null,
+      "content": "In `wazuh-alerts-ex2.json` the attacker pivots from patient zero (`employee-ws`) over SMB to a second corporate host.\n\n**Flag:** the **destination IPv4** of the lateral-movement (SMB/ADMIN$) alert.",
+      "solution": "1. On `analyst-host`: `grep -i lateral /opt/ngsoc-artifacts/forensic-bundle/wazuh-alerts-ex2.json` (rule 100003).\n2. Read the `dstip` field.\n3. The pivot target is **`${ANSWER}`** (`file-server`).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Which rule?",
+          "content": "Wazuh rule 100003 describes an SMB/PsExec lateral-movement pattern.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Field",
+          "content": "Look at the `dstip` of that alert, not the `srcip` (which is patient zero).",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0008.T1021"
+        }
+      ],
+      "expected_commands": [
+        "cat",
+        "grep",
+        "jq"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Forensics - the brute-forced account on db-server",
+      "level_type": "TRAINING_LEVEL",
+      "order": 22,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "dbadmin",
+      "answer_variable_name": null,
+      "content": "The alert stream shows repeated failed SSH logins to `db-server` followed by a successful one (rule 5715, *successful login after repeated failures*).\n\n**Flag:** the **username** whose login finally succeeded after the brute-force.",
+      "solution": "1. On `analyst-host`: `grep 5715 /opt/ngsoc-artifacts/forensic-bundle/wazuh-alerts-ex2.json`.\n2. Read the `user` field on the success event (after 10 prior failures in 2 min).\n3. The compromised account is **`${ANSWER}`**.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Which rule?",
+          "content": "Rule 5715 = successful SSH login after repeated failures. Rule 5710 = the failures.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Account",
+          "content": "Two accounts were targeted (`root`, then another); only the second one succeeds.",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0006.T1110"
+        }
+      ],
+      "expected_commands": [
+        "cat",
+        "grep",
+        "jq"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Forensics - the dropper SHA-256 (MISP IoC)",
+      "level_type": "TRAINING_LEVEL",
+      "order": 23,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "deadbeef0011",
+      "answer_variable_name": null,
+      "content": "`file-metadata.txt` documents the primary dropper `/tmp/.svc_update`. Its SHA-256 is the IoC you would push to the MISP Black Falcon event for hunting across the estate.\n\n**Flag:** the **first 12 hex characters** of the dropper's SHA-256.",
+      "solution": "1. On `analyst-host`: `grep -A12 \"PRIMARY DROPPER\" /opt/ngsoc-artifacts/forensic-bundle/file-metadata.txt`.\n2. Read the full SHA256 (it matches the Black Falcon IoC in MISP) and submit its first 12 hex characters.\n3. The flag is **`deadbeef0011`** (first 12 hex chars of the full SHA256).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Where",
+          "content": "Open `file-metadata.txt`, ITEM 1 (PRIMARY DROPPER).",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Field",
+          "content": "Use the `SHA256` line (not `MD5`); submit only its first 12 hex characters.",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0011.T1071"
+        }
+      ],
+      "expected_commands": [
+        "cat",
+        "grep",
+        "sha256sum"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Practical 2.0.3 - Express Forensic Report (Assessment)",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 24,
+      "estimated_duration": 8,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "From the bundle, the most-supported **initial access** vector is:",
+          "points": 25,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Brute-forced public-facing SSH",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Spear-phishing email -> malicious macro -> dropper in /tmp",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "SQL injection on the banking app",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Physical access to the data centre",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "The `.locked` mass-rename on `file-server` (rule 100004) maps to which ATT&CK technique?",
+          "points": 25,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "T1486 - Data Encrypted for Impact",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "T1190 - Exploit Public-Facing Application",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "T1566 - Phishing",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "T1078 - Valid Accounts",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "FFQ",
+          "text": "How many files were renamed to `.locked` in the rapid-succession alert? (number only)",
+          "points": 25,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "47",
+              "correct": true,
+              "order": 0
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Given a dropper that re-establishes a second C2 channel from a child process, the priority containment action is:",
+          "points": 25,
+          "penalty": 0,
+          "order": 3,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Wait and monitor",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Network-isolate patient zero and block egress to the C2 IP/port",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Pay the ransom",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Reboot the host and hope it clears",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        }
+      ],
+      "instructions": "Submit as the analyst compiling the express forensic report. Base every answer on the bundle artefacts (Section 2.0.3 checklist: evidence-based, traceable, prioritised).",
+      "assessment_type": "TEST"
+    },
+    {
+      "title": "Exercise 3 - Threat Intelligence Briefing (CTI Analyst)",
+      "level_type": "INFO_LEVEL",
+      "order": 25,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "## Scenario (Preparation / proactive defence)\nA CTI feed warns of a new campaign targeting financial institutions, delivering malware that **hijacks banking transactions** via spear-phishing. Your **`cti`** host (10.10.40.30) runs **MISP** for IoC management.\n\n**Your role - CTI Analyst.** Turn the *Black Falcon* intelligence into actionable guidance: threat overview & TTPs, prioritised IoCs, risk assessment, per-team recommendations, dissemination, and a concise **Threat Intelligence Brief** with an *Analyst's Notes* section.\n\nLevels 26-28 recover the campaign identifiers/IoCs; level 29 assesses your CTI reasoning.\n"
+    },
+    {
+      "title": "CTI - name the campaign",
+      "level_type": "TRAINING_LEVEL",
+      "order": 26,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "Black Falcon",
+      "answer_variable_name": null,
+      "content": "Across the range, the adversary's tooling and notes carry a campaign name. Read the ransom note on `file-server` or the Wazuh rule descriptions on `siem`.\n\n**Flag:** the **campaign name** (two words, as written, e.g. `Xxxxx Yyyyy`).",
+      "solution": "1. `grep -i 'Black Falcon' /var/ossec/etc/rules/ngsoc_lm8_rules.xml` on `siem` (all rules reference the campaign name with a space).\n2. Or: `grep -i 'Black Falcon' /srv/data/README-RANSOM.txt` on `file-server` (header line).\n3. The campaign is **`${ANSWER}`**.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Grep for it",
+          "content": "`grep -i 'Black Falcon'` the Wazuh rules on `siem` or the ransom note on `file-server`.",
+          "hint_penalty": 10,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [
+        "grep",
+        "cat"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "CTI - recover the campaign code",
+      "level_type": "TRAINING_LEVEL",
+      "order": 27,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "BF-Q4-2025",
+      "answer_variable_name": null,
+      "content": "The ransom note header carries a short **campaign code** (a tracking tag of the form `BF-Qx-YYYY`).\n\n**Flag:** the **campaign code** exactly as written.",
+      "solution": "1. On `file-server`: `grep -i campaign /srv/data/README-RANSOM.txt`.\n2. The code is **`${ANSWER}`** - useful as a MISP event tag/correlation key.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Header line",
+          "content": "It is on the *Campaign* line near the top of `README-RANSOM.txt`.",
+          "hint_penalty": 12,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [
+        "grep",
+        "cat"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "CTI - extract the ransom wallet IoC",
+      "level_type": "TRAINING_LEVEL",
+      "order": 28,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "1A2B3C4D5E6F7G8H9INEX-SIMULATED",
+      "answer_variable_name": null,
+      "content": "A financial IoC worth circulating to the sector ISAC: the **Bitcoin wallet** the note demands payment to.\n\n**Flag:** the **wallet string** exactly as written in the note.",
+      "solution": "1. On `file-server`: `grep -i wallet /srv/data/README-RANSOM.txt`.\n2. The (synthetic) wallet is **`${ANSWER}`**. In MISP you would add it as a `btc` attribute on the `Black Falcon` event and share it with the financial-sector ISAC.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Find the wallet line",
+          "content": "`grep -i wallet /srv/data/README-RANSOM.txt` on `file-server`.",
+          "hint_penalty": 12,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [
+        "grep",
+        "cat"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Exercise 3 - CTI Reasoning (Assessment)",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 29,
+      "estimated_duration": 8,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "FFQ",
+          "text": "Which MITRE ATT&CK technique ID is the campaign's initial access (spear-phishing)?",
+          "points": 50,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "T1566",
+              "correct": true,
+              "order": 0
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Which IoC is generally the MOST durable to deploy in detections (lowest false-positive churn)?",
+          "points": 50,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "A specific malware file hash / C2 domain tied to the campaign",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "A generic /24 network range",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "The word 'invoice' in any email subject",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "The proactive value of feeding this CTI into the SOC/SIEM is primarily to:",
+          "points": 50,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Replace the incident-response plan",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Shorten detection time by hunting the known IoCs before impact",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Avoid patching",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Appropriate external dissemination of confirmed IoCs is:",
+          "points": 50,
+          "penalty": 0,
+          "order": 3,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Post them publicly with victim names",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Share via a financial-sector ISAC / national CERT under agreed handling (e.g. TLP)",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Never share anything",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        }
+      ],
+      "instructions": "Threat-intelligence interpretation and prioritisation for the Black Falcon brief.",
+      "assessment_type": "TEST"
+    },
+    {
+      "title": "Exercise 4 - Proactive Security Testing (Penetration Tester)",
+      "level_type": "INFO_LEVEL",
+      "order": 30,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "## Scenario (red-team / cyber range)\nThe bank wants its online-banking app proactively tested. From **`kali`** (10.10.50.10) you attack the deliberately vulnerable **`web-banking`** app (10.10.20.10). Stay safe and controlled; report every weakness with impact and a fix.\n\n**Your role - Penetration Tester.** Plan the kill chain, run threat-informed testing (Nmap, curl, manual SQLi/credential testing), find at least two significant findings, map them to ATT&CK, and recommend mitigations.\n\nLevels 31-32 are hands-on findings; level 33 assesses your reporting and mitigations.\n"
+    },
+    {
+      "title": "Pen test - weak admin credential",
+      "level_type": "TRAINING_LEVEL",
+      "order": 31,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "admin123",
+      "answer_variable_name": null,
+      "content": "The banking app seeds an **admin account with a weak password** in the `admin_users` table of the `bankdb` database (recoverable via the login SQL-injection, or by reading the DB on `web-banking`). \n\n**Flag:** the **plaintext password** of the `admin` account.",
+      "solution": "1. Recon first: from `kali`, `nmap -sV 10.10.20.10` (HTTP/80) and browse `http://10.10.20.10/`.\n2. The app is vulnerable to SQLi on `login.php`; alternatively, on `web-banking`: `mysql -uroot -p'R00tP@ssNGSOC!' bankdb -e 'SELECT username,password,role FROM admin_users;'`.\n3. The admin password is **`${ANSWER}`** (MITRE T1110 - weak/guessable credential).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Recon then read the table",
+          "content": "`nmap -sV 10.10.20.10`, then query `admin_users` in `bankdb` (creds are seeded by the app).",
+          "hint_penalty": 15,
+          "order": 0
+        },
+        {
+          "title": "Direct DB read",
+          "content": "On `web-banking`: `mysql -uroot -p'R00tP@ssNGSOC!' bankdb -e 'select * from admin_users;'`.",
+          "hint_penalty": 25,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0006.T1110"
+        },
+        {
+          "technique_key": "TA0001.T1190"
+        }
+      ],
+      "expected_commands": [
+        "nmap",
+        "curl",
+        "mysql"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Pen test - the exposed directory",
+      "level_type": "TRAINING_LEVEL",
+      "order": 32,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "backup",
+      "answer_variable_name": null,
+      "content": "During web testing you confirm the **information-disclosure** finding: a publicly browsable directory under `/` that should never be exposed.\n\n**Flag:** the **directory name** (single word) that is publicly accessible without authentication.",
+      "solution": "1. From `kali`: `curl -s http://10.10.20.10/backup/` returns a listing.\n2. The exposed directory is **`/${ANSWER}/`** - it leaks the synthetic DB backup from Exercise 2. Recommend removing it and adding a deny rule / WAF.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Web enumeration",
+          "content": "Try common paths under `http://10.10.20.10/`; the one that lists files is the finding. You already saw it in Exercise 2.",
+          "hint_penalty": 12,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0007.T1083"
+        }
+      ],
+      "expected_commands": [
+        "curl",
+        "gobuster",
+        "ls"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Exercise 4 - Findings, ATT&CK Mapping & Mitigations (Assessment)",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 33,
+      "estimated_duration": 8,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "The SQL injection in the banking login maps to which ATT&CK technique?",
+          "points": 50,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "T1486 - Data Encrypted for Impact",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "T1190 - Exploit Public-Facing Application",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "T1566 - Phishing",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "The most effective code-level fix for the SQL injection is:",
+          "points": 50,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Hide the error message only",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Parameterised queries / prepared statements with input validation (plus a WAF rule as defence-in-depth)",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Rename the login page",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "For the weak `admin` credential, the best mitigations are:",
+          "points": 50,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Do nothing; it is internal",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Enforce a strong password policy, add MFA, and alert on repeated failed admin logins",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Email the password to staff",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "FFQ",
+          "text": "The exposed `/backup/` directory is which ATT&CK technique ID (file & directory discovery)?",
+          "points": 50,
+          "penalty": 0,
+          "order": 3,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "T1083",
+              "correct": true,
+              "order": 0
+            }
+          ]
+        }
+      ],
+      "instructions": "Map findings to ATT&CK and propose proportionate, specific mitigations for the pen-test report.",
+      "assessment_type": "TEST"
+    },
+    {
+      "title": "Exercise 5 - IR Plan Review & Ransomware Tabletop (IR Coordinator)",
+      "level_type": "INFO_LEVEL",
+      "order": 34,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "# Exercise 5 - IR Plan Review & Ransomware Tabletop\n\n**Role (ECSF):** Incident Response Coordinator / Facilitator.\n\nD5.8 Section 2.5 runs a **tabletop** to validate the IR plan against a ransomware crisis. The scenario brief **\"Operation Locked Ledger\"** is deployed on **`analyst-host`** at `/opt/ngsoc-artifacts/ex5-ransomware/tabletop-scenario.txt` (four timed injects: initial assessment -> scope expands -> management decision -> recovery).\n\nLocate and read the brief (next two flags), then complete the decision-focused assessment. This exercise is **conceptual**: it tests IR-plan decisions (authority, ransom policy, clean-backup recovery, lessons learned), not shell commands."
+    },
+    {
+      "title": "Tabletop - locate the scenario brief",
+      "level_type": "TRAINING_LEVEL",
+      "order": 35,
+      "estimated_duration": 5,
+      "minimal_possible_solve_time": 1,
+      "answer": "tabletop-scenario.txt",
+      "answer_variable_name": null,
+      "content": "The facilitator releases the ransomware tabletop brief within REP. It is staged on `analyst-host`.\n\n**Flag:** the **filename** of the tabletop scenario brief.",
+      "solution": "1. On `analyst-host`: `ls /opt/ngsoc-artifacts/ex5-ransomware/`.\n2. The brief is **`${ANSWER}`**; open it with `cat` to read the four injects.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Where",
+          "content": "Look under `/opt/ngsoc-artifacts/ex5-ransomware/` on `analyst-host`.",
+          "hint_penalty": 10,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0040.T1486"
+        }
+      ],
+      "expected_commands": [
+        "ls",
+        "cat"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Tabletop - the scenario codename",
+      "level_type": "TRAINING_LEVEL",
+      "order": 36,
+      "estimated_duration": 5,
+      "minimal_possible_solve_time": 1,
+      "answer": "Operation Locked Ledger",
+      "answer_variable_name": null,
+      "content": "Every tabletop has a codename used to tag the exercise after-action report.\n\n**Flag:** the **scenario codename** (the `SCENARIO TITLE` in the brief).",
+      "solution": "1. On `analyst-host`: `grep -i 'SCENARIO TITLE' /opt/ngsoc-artifacts/ex5-ransomware/tabletop-scenario.txt`.\n2. The codename is **`${ANSWER}`** (Nordik Bank, 12 BTC / 48 h).",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Where",
+          "content": "Read the header of `tabletop-scenario.txt` (`SCENARIO TITLE:` line).",
+          "hint_penalty": 10,
+          "order": 0
+        }
+      ],
+      "incorrect_answer_limit": 100,
+      "attachments": [],
+      "max_score": 50,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0040.T1486"
+        }
+      ],
+      "expected_commands": [
+        "cat",
+        "grep"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Exercise 5 - Tabletop Decisions & Plan Gaps (Assessment)",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 37,
+      "estimated_duration": 8,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "Inject 4: a restored server (FS-03) is **re-encrypted 4 hours after restoration**. The correct recovery action is to:",
+          "points": 25,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Pay the ransom to get a working decryptor",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Rebuild from a CLEAN baseline and rotate/reset all credentials before reconnecting",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Restore the same backup again to the same server",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Disable logging to speed up recovery",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Who holds authority to declare the incident and activate the IR plan / approve network shutdown?",
+          "points": 25,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Any SOC Tier-1 analyst",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "The Incident Commander (escalating to CISO/management for strategic calls)",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Whoever first sees the alert",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "The external IR firm only",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "On the ransom-payment decision (Inject 3), the **strongest** non-financial blocker is:",
+          "points": 25,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "The decryptor only works ~65% of the time",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "The ransomware group may be on an EU sanctions list (paying may be illegal)",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Bitcoin price volatility",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "The 48-hour deadline is too short",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "FFQ",
+          "text": "What is the age (in days) of the last known-good backup in the brief? (number only)",
+          "points": 25,
+          "penalty": 0,
+          "order": 3,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "7",
+              "correct": true,
+              "order": 0
+            }
+          ]
+        }
+      ],
+      "instructions": "Answer as the Incident Commander facilitating \"Operation Locked Ledger\". Decisions should reflect IR best practice (NIST SP 800-61r2) and the injects in the brief.",
+      "assessment_type": "TEST"
+    },
+    {
+      "title": "Module 8 - Wrap-up & Debrief",
+      "level_type": "INFO_LEVEL",
+      "order": 38,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "# Wrap-up\n\nYou have completed the five ECSF-aligned exercises and the three assessed Sub Case 1a practicals (2.0.1 spear-phishing, 2.0.2 collaborative response chain, 2.0.3 express forensic report) of **Learning Module 8**.\n\nIn the instructor-led debrief, the facilitator reviews each write-up, consolidates the express forensic report and the tabletop after-action report, and updates the IR plan with the gaps surfaced here. Reference frameworks: **NIST SP 800-61r2**, **ENISA ECSF**, **MITRE ATT&CK**, **FIRST CSIRT Services Framework**."
+    }
+  ],
+  "estimated_duration": 258,
+  "variant_sandboxes": false
+}

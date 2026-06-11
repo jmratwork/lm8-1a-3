@@ -38,7 +38,7 @@
     dest: "{{ file_server_share }}/{{ item }}"
     content: |
       NG-SOC LM8 Training Artefact – Ransomware Simulation
-      This file simulates a document encrypted by the BlackFalcon ransomware.
+      This file simulates a document encrypted by the Black Falcon ransomware.
       Original filename: {{ item | replace('.locked','') }}
       Encryption: AES-256-CBC (SIMULATED – NOT REAL ENCRYPTION)
       Key ID: BF-2025-0042-SIM
@@ -62,7 +62,7 @@
     content: |
       ===================================================================
                     YOUR FILES HAVE BEEN ENCRYPTED
-              BlackFalcon Ransomware v2.1 – Campaign BF-Q4-2025
+              Black Falcon Ransomware v2.1 – Campaign BF-Q4-2025
       ===================================================================
 
       ** THIS IS A TRAINING SIMULATION – NO FILES ARE ACTUALLY ENCRYPTED **

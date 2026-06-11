@@ -49,20 +49,20 @@ NOTES:
 ────────────────────────────────────────────────────────────
 ITEM 3 – PERSISTENCE MECHANISM (scheduled task / cron)
 ────────────────────────────────────────────────────────────
-Path         : /var/spool/cron/crontabs/jsmith
+Path         : /etc/cron.d/svc-update
 File type    : ASCII text
-Size         : 142 bytes
-Permissions  : -rw-------
-Owner        : root (cron daemon)
+Size         : 98 bytes
+Permissions  : -rw-r--r--
+Owner        : root
 Modified     : 2025-11-15 02:09:05 UTC
 SHA256       : 11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd
 Content (simulated):
-  # m h dom mon dow command
-  */5 * * * * /tmp/.svc_update --mode=beacon --quiet 2>/dev/null
+  # NG-SOC training artefact – simulates malware C2 beacon (every 5 min)
+  */5 * * * * root /opt/c2-beacon/beacon.sh
 NOTES:
-  - Cron entry created at 02:09:05 – 7 seconds after dropper first executed
+  - Cron file created at 02:09:05 – 7 seconds after dropper first executed
   - Runs beacon every 5 minutes for persistence (T1053.003 – Cron)
-  - /dev/null redirect hides output to reduce detection
+  - System cron fragment (/etc/cron.d/) runs as root after privilege escalation
 
 ────────────────────────────────────────────────────────────
 ITEM 4 – RANSOMWARE NOTE (lateral movement target: file-server)
