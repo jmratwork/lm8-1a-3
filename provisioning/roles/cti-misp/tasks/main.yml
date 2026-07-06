@@ -34,13 +34,13 @@
       version: "3.8"
       services:
         misp:
-          image: ghcr.io/misp/misp-docker/misp-core:latest
+          image: {{ misp_image }}
           restart: always
           ports:
             - "443:443"
             - "80:80"
           environment:
-            - MISP_BASEURL=https://{{ c2_ip | replace(c2_ip, "10.10.40.30") }}
+            - MISP_BASEURL=https://{{ cti_ip }}
             - MISP_ADMIN_EMAIL={{ misp_admin_email }}
             - MISP_ADMIN_PASSPHRASE=NGSOCAdmin2025!
             - MISP_ORG={{ misp_org_name }}
@@ -49,7 +49,7 @@
             - misp-data:/var/www/MISP/app/files
             - misp-logs:/var/www/MISP/app/tmp/logs
         misp-db:
-          image: mariadb:10.11
+          image: {{ mariadb_image }}
           restart: always
           environment:
             - MYSQL_DATABASE=misp
@@ -59,7 +59,7 @@
           volumes:
             - misp-db:/var/lib/mysql
         misp-redis:
-          image: redis:7-alpine
+          image: {{ redis_image }}
           restart: always
       volumes:
         misp-data:
@@ -67,11 +67,22 @@
         misp-db:
     mode: "0644"
 
+- name: Authenticate to Docker Hub (optional, avoids rate limits)
+  community.docker.docker_login:
+    username: "{{ docker_registry_user }}"
+    password: "{{ docker_registry_token }}"
+  when: docker_registry_user | default('') | length > 0
+  no_log: true
+
 - name: Start MISP containers
   community.docker.docker_compose:
     project_src: /opt/misp-docker
     state: present
     pull: true
+  register: misp_compose
+  retries: 5
+  delay: 30
+  until: misp_compose is succeeded
   ignore_errors: true
 
 - name: Wait for MISP to become available
@@ -80,7 +91,12 @@
     port: 443
     delay: 30
     timeout: 300
+  register: misp_up
   ignore_errors: true
+
+- name: Record MISP availability
+  ansible.builtin.set_fact:
+    misp_available: "{{ misp_up is succeeded }}"
 
 - name: Deploy MISP IoC seed script (Black Falcon event)
   ansible.builtin.copy:
@@ -206,6 +222,86 @@
           else:
               print("Failed to create event. Check API key and MISP availability.")
 
+- name: Deploy offline Black Falcon IoC export (MISP JSON, always present)
+  ansible.builtin.copy:
+    dest: /opt/misp-docker/black-falcon-event.json
+    mode: "0644"
+    content: |
+      {
+        "Event": {
+          "info": "Black Falcon – Banking Trojan Campaign (NG-SOC LM8 Training)",
+          "distribution": "0",
+          "threat_level_id": "2",
+          "analysis": "1",
+          "Attribute": [
+            {
+              "type": "ip-dst",
+              "category": "Network activity",
+              "value": "10.10.20.20",
+              "comment": "C2 server IP – Black Falcon campaign (SIMULATED)",
+              "to_ids": true
+            },
+            {
+              "type": "domain",
+              "category": "Network activity",
+              "value": "update-svc.blackfalcon-sim.internal",
+              "comment": "C2 domain – Black Falcon (SIMULATED)",
+              "to_ids": true
+            },
+            {
+              "type": "md5",
+              "category": "Payload delivery",
+              "value": "aabbccdd11223344aabbccdd11223344",
+              "comment": "BlackFalcon dropper MD5 (SIMULATED)",
+              "to_ids": true
+            },
+            {
+              "type": "sha256",
+              "category": "Payload delivery",
+              "value": "deadbeef00112233445566778899aabbccddeeff00112233445566778899aabb",
+              "comment": "BlackFalcon stage-2 loader SHA256 (SIMULATED)",
+              "to_ids": true
+            },
+            {
+              "type": "email-subject",
+              "category": "Payload delivery",
+              "value": "Urgent: Q4 Wire Transfer Authorisation Required",
+              "comment": "Spear-phishing lure subject (SIMULATED)",
+              "to_ids": false
+            },
+            {
+              "type": "email-subject",
+              "category": "Payload delivery",
+              "value": "Security Alert: Verify Your Online Banking Credentials",
+              "comment": "Spear-phishing lure subject (SIMULATED)",
+              "to_ids": false
+            },
+            {
+              "type": "filename",
+              "category": "Payload delivery",
+              "value": "Q4-wire-transfer-auth.docm",
+              "comment": "Malicious macro-enabled attachment (SIMULATED)",
+              "to_ids": true
+            },
+            {
+              "type": "url",
+              "category": "External analysis",
+              "value": "http://update-svc.blackfalcon-sim.internal/update.php",
+              "comment": "C2 beacon URL – Black Falcon (SIMULATED)",
+              "to_ids": true
+            }
+          ],
+          "Tag": [
+            {"name": "misp-galaxy:mitre-attack-pattern=\"Spearphishing Attachment - T1566.001\""},
+            {"name": "misp-galaxy:mitre-attack-pattern=\"Application Layer Protocol - T1071.001\""},
+            {"name": "misp-galaxy:mitre-attack-pattern=\"Data Encrypted for Impact - T1486\""},
+            {"name": "tlp:amber"},
+            {"name": "ngsoc:module=lm8-ex3"},
+            {"name": "ngsoc:type=synthetic-training-data"}
+          ]
+        }
+      }
+
 - name: Create MISP IoC loading README
   ansible.builtin.copy:
     dest: /opt/misp-docker/README-SEED.md
@@ -232,3 +328,23 @@
       IoCs should include: 1 IP, 1 domain, 2 hashes, 2 email subjects,
       1 filename, 1 URL.
     mode: "0644"
+
+- name: Seed Black Falcon IoCs into live MISP (best-effort)
+  when: misp_available | default(false)
+  block:
+    - name: Run MISP seed script
+      ansible.builtin.command: python3 /opt/misp-docker/seed-black-falcon.py
+      register: misp_seed
+      changed_when: false
+      failed_when: false
+
+    - name: Report MISP seeding result
+      ansible.builtin.debug:
+        msg: "{{ misp_seed.stdout_lines | default(['no output']) }}"
+
+- name: Report offline IoC fallback (MISP not reachable)
+  ansible.builtin.debug:
+    msg: >-
+      MISP not reachable — offline IoC export left at
+      /opt/misp-docker/black-falcon-event.json; training levels are unaffected.
+  when: not (misp_available | default(false))

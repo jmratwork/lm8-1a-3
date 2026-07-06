@@ -42,6 +42,23 @@ wazuh_version: "4.7"
 # MISP version (Docker tag)
 misp_docker_tag: "latest"
 
+# MISP / CTI host container images.
+# mariadb_image and redis_image can be re-pointed to an internal mirror
+# (Harbor / Nexus / ECR pull-through cache) to avoid Docker Hub's
+# unauthenticated pull rate limit. Defaults pull straight from Docker Hub.
+misp_image: "ghcr.io/misp/misp-docker/misp-core:latest"
+mariadb_image: "mariadb:10.11"
+redis_image: "redis:7-alpine"
+
+# CTI host IP (used as MISP base URL)
+cti_ip: "10.10.40.30"
+
+# Optional Docker registry authentication to dodge Docker Hub rate limits.
+# Leave both empty to keep the default behaviour (no login performed).
+# If used, vault docker_registry_token (a Docker Hub PAT).
+docker_registry_user: ""
+docker_registry_token: ""
+
 # Synthetic C2 details (all fictional, contained within the sandbox)
 c2_ip: "10.10.20.20"
 c2_port: 4444
