@@ -91,7 +91,6 @@
       [Service]
       ExecStart=
       ExecStart=-/sbin/agetty --autologin {{ student_user }} --noclear %I $TERM
-  notify: reload systemd
 
 - name: Configure console autologin as student user (serial ttyS0)
   ansible.builtin.copy:
@@ -101,7 +100,19 @@
       [Service]
       ExecStart=
       ExecStart=-/sbin/agetty --autologin {{ student_user }} --keep-baud 115200,57600,38400,9600 %I $TERM
-  notify: reload systemd
+
+- name: Reload systemd unit files (pick up getty autologin overrides)
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart console getty so autologin applies without a reboot
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - getty@tty1.service
+    - serial-getty@ttyS0.service
+  failed_when: false
 
 - name: Set MOTD with scenario banner
   ansible.builtin.copy:
