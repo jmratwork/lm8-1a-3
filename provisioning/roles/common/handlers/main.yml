@@ -1,0 +1,6 @@
+---
+# Handlers for role: common
+
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
