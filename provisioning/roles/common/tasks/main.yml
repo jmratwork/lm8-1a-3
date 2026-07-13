@@ -74,45 +74,27 @@
     mode: "0440"
     validate: "visudo -cf %s"
 
-- name: Ensure getty override dirs exist (console autologin as student user)
-  ansible.builtin.file:
-    path: "/etc/systemd/system/{{ item }}.d"
-    state: directory
-    mode: "0755"
-  loop:
-    - getty@tty1.service
-    - serial-getty@ttyS0.service
-
-- name: Configure console autologin as student user (tty1)
+- name: Enable SSH password auth for Guacamole console (high-precedence drop-in)
   ansible.builtin.copy:
-    dest: /etc/systemd/system/getty@tty1.service.d/autologin.conf
+    dest: /etc/ssh/sshd_config.d/00-crczp-guacamole.conf
     mode: "0644"
     content: |
-      [Service]
-      ExecStart=
-      ExecStart=-/sbin/agetty --autologin {{ student_user }} --noclear %I $TERM
+      # Required by CyberRangeCZ "Open console" (Apache Guacamole over SSH).
+      PasswordAuthentication yes
+      KbdInteractiveAuthentication yes
+  notify: restart ssh
 
-- name: Configure console autologin as student user (serial ttyS0)
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf
-    mode: "0644"
-    content: |
-      [Service]
-      ExecStart=
-      ExecStart=-/sbin/agetty --autologin {{ student_user }} --keep-baud 115200,57600,38400,9600 %I $TERM
-
-- name: Reload systemd unit files (pick up getty autologin overrides)
-  ansible.builtin.systemd:
-    daemon_reload: true
-
-- name: Restart console getty so autologin applies without a reboot
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    state: restarted
+- name: Neutralize conflicting 'PasswordAuthentication no' in cloud-init drop-ins
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: '^\s*PasswordAuthentication\s+no\s*$'
+    replace: 'PasswordAuthentication yes'
   loop:
-    - getty@tty1.service
-    - serial-getty@ttyS0.service
+    - /etc/ssh/sshd_config
+    - /etc/ssh/sshd_config.d/50-cloud-init.conf
+    - /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
   failed_when: false
+  notify: restart ssh
 
 - name: Set MOTD with scenario banner
   ansible.builtin.copy:
