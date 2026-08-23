@@ -80,9 +80,11 @@ lm8-1a-3/
 ├── V4_ngsoc-lm8-subcase1a-training.json  # REP training definition (47 levels)
 ├── README.md                             # This file
 ├── VALIDATION.md                         # Resource & tool validation table
+├── CHANGELOG.md                          # Version history (v4 alignment with D5.8)
 │
 ├── tools/
-│   └── validate-training.py              # Validates every flag against what is DEPLOYED
+│   ├── validate-training.py              # Validates every flag against what is DEPLOYED
+│   └── build-v4-phase3.py                # Generator that applied the Phase 3 levels
 │
 ├── provisioning/
 │   ├── playbook.yml                      # 7-play Ansible playbook
@@ -112,7 +114,7 @@ lm8-1a-3/
 │   │   ├── phishing-call-script.txt      # Synthetic vishing transcript
 │   │   └── suspicious-attachment.txt     # Static attachment metadata (no code)
 │   ├── forensic-bundle/
-│   │   ├── wazuh-alerts-ex2.json         # 8 synthetic SIEM alerts
+│   │   ├── wazuh-alerts-ex2.json         # 11 synthetic SIEM alerts
 │   │   ├── endpoint-process-list.txt     # Synthetic ps/netstat output
 │   │   ├── netstat-employee-ws.txt       # Synthetic network connections
 │   │   ├── web-banking-access.log        # Synthetic Apache log with SQLi evidence
@@ -177,18 +179,28 @@ title the learner plays; "ECSF profile" is the framework profile it maps to.
 
 ## MITRE ATT&CK Techniques Covered
 
-| Technique | Name | Exercise(s) |
+Techniques tagged on the training levels of `V4_ngsoc-lm8-subcase1a-training.json`:
+
+| Technique | Name | Where |
 |---|---|---|
-| T1566.001 | Spearphishing Attachment | Ex 3, Ex 5, Act 2.0.1 |
-| T1190 | Exploit Public-Facing Application (SQLi) | Ex 2, Ex 3, Ex 4 |
-| T1078 | Valid Accounts | Ex 2, Ex 3, Ex 4 |
-| T1071.001 | C2 via Application Layer Protocol | Ex 1, Ex 3 |
-| T1053.005 | Scheduled Task/Job: Cron | Ex 1, Ex 2, Ex 5 |
+| T1566 / T1566.001 | Phishing / Spearphishing Attachment | Ex 1, Ex 2, Act 2.0.1 |
+| T1566.004 | Phishing via Service (smishing / vishing) | Act 2.0.1 |
+| T1111 | Multi-Factor Authentication Interception (OTP relay) | Act 2.0.1 |
+| T1071.001 | C2 via Application Layer Protocol | Ex 1, Ex 2 |
+| T1571 | Non-Standard Port (C2 on 4444) | Ex 1 |
+| T1543 | Create or Modify System Process (malware stub) | Ex 1 |
+| T1053.005 | Scheduled Task/Job: Cron | Ex 1 |
+| T1070 | Indicator Removal (beacon eradication) | Ex 2 |
+| T1046 | Network Service Discovery (nmap recon) | Ex 4 |
+| T1190 | Exploit Public-Facing Application (SQLi) | Ex 4 |
+| T1110 | Brute Force | Act 2.0.3, Ex 4 |
+| T1083 | File and Directory Discovery (exposed /backup) | Ex 2, Ex 4 |
+| T1021.002 | Lateral Movement: SMB | Act 2.0.3 |
 | T1486 | Data Encrypted for Impact | Ex 2, Ex 3, Ex 5 |
-| T1005 | Data from Local System | Ex 2, Ex 3, Ex 4 |
-| T1041 | Exfiltration Over C2 Channel | Ex 2, Ex 5 |
-| T1021.002 | Lateral Movement: SMB | Ex 5 |
-| T1083 | File and Directory Discovery | Ex 4 |
+
+> This lists the ATT&CK tags carried by the console levels. The scenario
+> narrative also exercises Valid Accounts (T1078), Data from Local System
+> (T1005) and Exfiltration Over C2 (T1041) in the artefacts and briefings.
 
 ---
 
@@ -207,7 +219,11 @@ title the learner plays; "ECSF profile" is the framework profile it maps to.
    - Wazuh Dashboard: http://10.10.40.10:5601 (admin / admin, change on first login)
    - MISP: https://10.10.40.30 (admin@admin.test / admin, change on first login → NGSOCAdmin2025!)
    - Web banking: http://10.10.20.10 (admin / admin123 – deliberately weak)
-   - Kali: SSH to 10.10.50.10 as `analyst`
+   - Kali: open its **GUI console** from the topology panel (log in as `analyst` / `ngsoc-analyst`)
+
+> **Host access is via the REP/Guacamole GUI console**, not an SSH client — the
+> training levels are written for the in-browser console (right-click a host →
+> Open console). `sudo` works without a password.
 
 ### Instructor Checklist
 See [docs/instructor-guide.md](docs/instructor-guide.md) → Section 3 for full REP session preparation checklist.
