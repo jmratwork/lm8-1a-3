@@ -67,7 +67,7 @@ NOTES:
 ────────────────────────────────────────────────────────────
 ITEM 4 – RANSOMWARE NOTE (lateral movement target: file-server)
 ────────────────────────────────────────────────────────────
-Path         : /srv/shares/finance/README_RESTORE.txt  (on file-server 10.10.30.20)
+Path         : /srv/data/README_RESTORE.txt  (on file-server 10.10.30.20)
 File type    : ASCII text
 Size         : 1,842 bytes
 Permissions  : -rw-r--r--
@@ -80,7 +80,7 @@ Content preview (simulated – inert):
   Send 0.5 BTC to address: 1BlackFalconSimXXXXXXXXXXXXXXXX
   [THIS IS A TRAINING ARTEFACT – NO REAL ENCRYPTION OCCURRED]
 NOTES:
-  - Dropped after 47 files renamed to .locked in /srv/shares/finance/
+  - Dropped after 47 files renamed to .locked in /srv/data/
   - Bitcoin address is FICTIONAL; do not attempt any transaction
   - Correlates with Wazuh rule 100004 and 553
 

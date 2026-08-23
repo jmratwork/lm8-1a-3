@@ -78,7 +78,7 @@ TIMELINE
   Student task  : What account lockout policy would have stopped this attack?
 
 [02:15:30 UTC] RANSOMWARE ENCRYPTION BEGINS  [CONFIRMED]
-  What happened : 47 files in /srv/shares/finance/ renamed to .locked in 3 seconds.
+  What happened : 47 files in /srv/data/ renamed to .locked in 3 seconds.
                   Ransom note README_RESTORE.txt dropped.
   Evidence      : Wazuh alerts 100004 (02:15:30, 02:15:33), 553 (02:15:48).
                   file-metadata.txt item 4.

@@ -1,53 +1,81 @@
-================================================================================
-SYNTHETIC TRAINING ARTEFACT – NG-SOC LM8 Sub Case 1a
-Simulated voice phishing (vishing) call transcript – Activity 2.0.1
-ALL DETAILS ARE FICTITIOUS – ROLE-PLAY SCRIPT ONLY
-================================================================================
+==============================================================
+TRAINING SIMULATION -- NG-SOC LM8 -- ACTIVITY 2.0.1
+VISHING (VOICE PHISHING) CALL SCRIPT -- Black Falcon Campaign
+INSTRUCTOR GUIDE -- Read aloud during tabletop exercise
+All names, numbers and organisations are FICTIONAL.
+==============================================================
 
-SCENARIO: Attacker calls employee's desk phone posing as IT Helpdesk.
-Date/Time of simulated call: 2026-06-08 10:05:00 UTC
-Caller (attacker): "IT Helpdesk, Michael Carter"
-Recipient (victim): Jane Phillips, Finance Department, SecureBank
+SCENARIO
+  Date/time : 2025-04-10, approximately 09:45 UTC
+  Target    : Finance employee at Nordik Bank (SIMULATED entity)
+  Attacker  : Posing as "IT Security Helpdesk" -- Mark Schreiber
+  Goal      : Steal One-Time Password (OTP) in real time to bypass MFA
 
---- CALL TRANSCRIPT (RECONSTRUCTION FROM VOICEMAIL / WITNESS ACCOUNT) ---
+==============================================================
+CALL TRANSCRIPT
+==============================================================
 
-CALLER: "Good morning, this is Michael from the SecureBank IT Security team.
-I'm calling about an urgent issue affecting your workstation. Our monitoring
-has flagged your machine — employee-ws — as potentially compromised by an
-external intrusion attempt this morning."
+ATTACKER:
+  "Good morning. This is Mark Schreiber calling from the IT Security
+   Helpdesk. Could I please speak with [EMPLOYEE NAME]?"
 
-EMPLOYEE: "Oh — what do I need to do?"
+EMPLOYEE:
+  "Speaking."
 
-CALLER: "I need to run a quick remote verification check. Can you visit the
-following URL in your browser and enter your Windows login credentials so I
-can validate your account hasn't been taken over? The address is:
-h-t-t-p colon forward-slash forward-slash update-svc dot blackfalcon-sim dot
-internal forward-slash verify. It will ask for your username and password."
+ATTACKER:
+  "Thank you. I'm calling because our security monitoring system has
+   flagged repeated failed login attempts against your account over
+   the last 30 minutes, originating from an IP address in Eastern
+   Europe. We believe your credentials may have been compromised.
+   Are you currently at your workstation?"
 
-EMPLOYEE: "Is this the normal IT portal?"
+EMPLOYEE:
+  "Yes, I am."
 
-CALLER: "Yes, it's our new verification portal, it went live this week. I can
-stay on the line while you do it. It's quite urgent — if we don't verify in the
-next 15 minutes your account may be locked as a precaution."
+ATTACKER:
+  "Good. To protect your account we need to re-validate your identity
+   right now. I've already blocked the suspicious IP, but I need you
+   to log into the staff VPN portal -- the address is
+   vpn-portal.nordik-internal.example -- and tell me the 6-digit code
+   that appears on screen after you authenticate. I'll use that on my
+   end to push a security patch to your session token."
 
-[Employee reportedly provided credentials before ending the call and checking
-with a colleague, at which point she recognised it as suspicious and contacted
-the SOC.]
+  [Attacker enters the stolen OTP into the real portal in real time,
+   gaining access to the employee's account before the OTP expires.]
 
---- END TRANSCRIPT ---
+ATTACKER (after OTP is entered):
+  "Perfect, thank you. I've applied the patch. You may see a brief
+   session refresh. Your account is now secured. Please don't share
+   today's support ticket number with anyone -- it's part of an
+   active security investigation. Have a good day."
 
-OBSERVABLE ANALYSIS FOR EXERCISE:
-  Type: Vishing (voice phishing)
-  Pretext: IT Helpdesk impersonation
-  Technique: Authority + urgency + credential harvesting URL
-  URL delivered verbally: http://update-svc.blackfalcon-sim.internal/verify
-  Resolves to: 10.10.20.20 (C2 server, within sandbox only)
-  Credentials targeted: Windows AD credentials
-  MITRE ATT&CK: T1566 (Phishing), T1598.004 (Vishing)
-  Result: Employee provisionally provided credentials (scenario context)
+==============================================================
+SOCIAL ENGINEERING TECHNIQUES (for debrief):
 
-NOTES FOR INSTRUCTOR:
-  Students read this transcript and triage it alongside the email and SMS.
-  Key learning: multi-channel attacks are coordinated; the same C2 domain
-  appears across email, SMS and voice call — a strong corroborating IoC.
-  Students should add the phone number and verbal URL to their IoC list.
+1. AUTHORITY -- IT Security impersonation, professional tone
+2. URGENCY -- active attack in progress, immediate action required
+3. FEAR -- account compromise, Eastern Europe IP (credible threat)
+4. PRETEXT -- plausible cover story (VPN session patch)
+5. OTP RELAY ATTACK -- real-time MFA bypass (T1111)
+6. SECRECY -- "don't share the ticket number" prevents verification
+
+MITRE ATT&CK MAPPING:
+  T1566      -- Phishing (voice variant)
+  T1111      -- Multi-Factor Authentication Interception
+  T1078      -- Valid Accounts (credential abuse post-OTP theft)
+
+INDICATORS OF VISHING:
+  - Unsolicited inbound call claiming to be IT Support
+  - Caller knows employee name (from LinkedIn / earlier recon)
+  - Request for OTP / password over the phone
+  - Pressure to act immediately, not to verify via other channels
+  - Plausible but unverifiable cover story
+
+STUDENT DISCUSSION POINTS:
+  Q1: What policy would prevent this attack?
+      (Never share OTPs verbally; IT never asks for them)
+  Q2: How could the employee verify the caller's identity?
+      (Hang up, call the published IT helpdesk number independently)
+  Q3: What telemetry would show this attack in Wazuh/SIEM?
+      (Login from new IP + MFA success after employee call started)
+==============================================================

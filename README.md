@@ -77,8 +77,12 @@ WAN / Management (100.100.100.0/24 – platform automatic, all nodes)
 ```
 lm8-1a-3/
 ├── topology.yml                          # CyberRangeCZ topology (MUST stay in root)
+├── V4_ngsoc-lm8-subcase1a-training.json  # REP training definition (47 levels)
 ├── README.md                             # This file
 ├── VALIDATION.md                         # Resource & tool validation table
+│
+├── tools/
+│   └── validate-training.py              # Validates every flag against what is DEPLOYED
 │
 ├── provisioning/
 │   ├── playbook.yml                      # 7-play Ansible playbook
@@ -100,14 +104,8 @@ lm8-1a-3/
 │       ├── cti-misp/                     # MISP Docker, seed script (Black Falcon event)
 │       └── artifacts/                    # Student handout templates, artefact deployment
 │
-├── trainings/
-│   ├── exercise-1-soc-triage.json        # SOC Analyst – SIEM triage
-│   ├── exercise-2-containment.json       # Incident Responder – containment/eradication
-│   ├── exercise-3-cti-briefing.json      # CTI Analyst – MISP threat intel
-│   ├── exercise-4-pentest.json           # Pen Tester – SQLi + brute force
-│   └── exercise-5-tabletop.json          # IR Coordinator – ransomware tabletop
-│
-├── artifacts/
+├── artifacts/                            # MIRROR of provisioning/roles/artifacts/files/
+│   ├── README.md                         # why this is a mirror; how to re-sync
 │   ├── phishing/
 │   │   ├── phishing-email.eml            # Synthetic spear-phishing email
 │   │   ├── phishing-sms.txt              # Synthetic smishing message
@@ -139,15 +137,18 @@ lm8-1a-3/
 
 ## WP5:M8 Coverage Matrix
 
-| Topic | Ex 1 | Ex 2 | Ex 3 | Ex 4 | Ex 5 | 2.0.1 | 2.0.2 | 2.0.3 |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Incident response lifecycle | ✅ | ✅ | | | ✅ | | ✅ | ✅ |
-| Digital forensics fundamentals | | ✅ | | | | | | ✅ |
-| Multi-channel phishing / social engineering | ✅ | | | | | ✅ | | |
-| SIEM-driven threat detection | ✅ | ✅ | ✅ | | | | | ✅ |
-| CTI and threat actor profiling | | | ✅ | ✅ | ✅ | | | |
-| Regulatory obligations (NIS2, GDPR) | | ✅ | | | ✅ | | ✅ | |
-| Threat-informed penetration testing | | | ✅ | ✅ | | | | |
+Topic names below are taken **verbatim from D5.8 Table 2** so that the
+deliverable and this repository can be cross-read line by line.
+
+| WP5:M8 Topic (D5.8 Table 2) | Where in this repository |
+|---|---|
+| Incident handling and documentation | Exercises 1, 2, 5; activity 2.0.2 templates (decision log, SITREP, handover) |
+| Threat intelligence enrichment and exploitation | Exercise 3; MISP event #1001 seeded by `cti-misp` |
+| Containment, acquisition, eradication procedures | Exercises 2 & 5; `forensics-host` DFIR toolset and chain-of-custody template |
+| SIEM alert triage and correlation | Exercise 1; Wazuh rules 100001–100005 on `siem` |
+| Vulnerability identification in financial infrastructures | Exercises 3 & 4; `web-banking-vuln` (SQLi, weak admin credential, exposed `/backup`) |
+| Use of CyberRangeCZ/KYPO simulators and REP tooling (scenario injects, collaboration space, quizzes, assessed practical submissions) | `topology.yml`; `V4_ngsoc-lm8-subcase1a-training.json` (47 levels: injects, 28 console tasks, 8 assessments) |
+| ECSF role mapping and learning outcome alignment | Table below; every exercise carries an ECSF-aligned role |
 
 **All 7 topics covered.** ✅
 
@@ -155,13 +156,22 @@ lm8-1a-3/
 
 ## ECSF Role Mapping
 
-| Exercise | Role | ECSF Profile |
+Profiles are the four named in **D5.8 Figure 2**. "Scenario role" is the job
+title the learner plays; "ECSF profile" is the framework profile it maps to.
+
+| Exercise / Activity | Scenario role | ECSF profile (D5.8 Figure 2) |
 |---|---|---|
 | Exercise 1 | SOC Analyst Tier 1 | Cyber Incident Responder |
 | Exercise 2 | CSIRT Analyst / Incident Responder | Cyber Incident Responder |
+| Activity 2.0.3 | Forensic analyst | **Digital Forensics Investigator** |
 | Exercise 3 | CTI Analyst | Cyber Threat Intelligence Specialist |
-| Exercise 4 | Penetration Tester | Penetration Tester |
-| Exercise 5 | IR Coordinator | Cyber Incident Responder / CISO |
+| Exercise 4 | Penetration Tester (Red Team Operator) | Cyber Incident Responder *(offensive testing feeds the responder's threat-informed practice; Penetration Tester is not among the four M8 profiles)* |
+| Exercise 5 | IR Coordinator / Facilitator | Cyber Incident Responder + **Cyber Legal, Policy & Compliance Officer** (NIS2 / GDPR notification decisions) |
+
+> Coverage note: the *Cyber Legal, Policy & Compliance Officer* strand is
+> currently carried by the Exercise 5 tabletop discussion only. Deepening it
+> (criminal-investigation procedure, evidential admissibility, regulator
+> notification as assessed items) is tracked as pending work.
 
 ---
 
@@ -206,13 +216,21 @@ See [docs/instructor-guide.md](docs/instructor-guide.md) → Section 3 for full 
 
 ## Grading
 
-| Component | Weight | Pass Threshold |
-|---|---|---|
-| Exercises 1–5 (knowledge checks) | 60% | No exercise below 40% |
-| Activity 2.0.1 (multi-channel phishing triage) | 15% | — |
-| Activity 2.0.2 (collaborative response chain) | 15% | — |
-| Activity 2.0.3 (express forensic report) | 10% | — |
-| **Overall pass** | — | **≥ 60% overall** |
+**This table is the single source of truth for weighting.**
+`docs/instructor-guide.md` §6 restates it and must not diverge.
+
+| Component | Weight | Assessed how | Pass threshold |
+|---|---|---|---|
+| Exercises 1–5 | **60 %** | In-platform: 28 console flags + 8 assessment levels (REP-scored) | No exercise below 40 % |
+| Activity 2.0.1 — multi-channel phishing triage | 15 % | Instructor-graded submission (triage note, observables, action set) | — |
+| Activity 2.0.2 — collaborative response chain | 15 % | Instructor-graded artefacts (task board, decision log, SITREP, handover) | — |
+| Activity 2.0.3 — express forensic report | 10 % | Instructor-graded participant inputs, consolidated by the facilitator | — |
+| **Overall pass** | — | — | **≥ 60 % overall** |
+
+The 60/40 split follows **D5.8 §2.0.4**, which weights (i) technical correctness,
+(ii) completeness and quality of documentation and (iii) communication and
+coordination under time pressure equally. Dimensions (ii) and (iii) live almost
+entirely in the three practical activities, so they carry 40 % between them.
 
 ---
 

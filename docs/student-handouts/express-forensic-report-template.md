@@ -1,131 +1,121 @@
 # Express Forensic Report Template
-**Classification:** RESTRICTED (Training) | **Case Reference:** [CASE-ID]
-**Exercise:** Activity 2.0.3 – Express Forensic Report
-**Analyst:** [Name] | **Role:** [Role] | **Date (UTC):** [YYYY-MM-DD]
-**Submission deadline:** 30 minutes from evidence delivery
+
+**Classification:** RESTRICTED (Training) | **Reference:** [EFR-001]
+**Analyst:** [Name / Role] | **Date/Time (UTC):** [YYYY-MM-DDTHH:MM:SSZ]
+**Case:** NG-SOC LM8 – Black Falcon Campaign (Activity 2.0.3)
+**Submission window:** 30 minutes from artefact release
+
+> **Mirror, not source.** The authoritative copy of this template is deployed to
+> `~/reports/express-forensic-report.md` on `analyst-host` by the
+> `forensics-host` role. Edit it there; this file exists so instructors can read
+> the structure without deploying the range.
+>
+> The seven headings below are fixed by **D5.8 Section 2.0.3** and must not be
+> renamed or reordered — the assessment checklist maps to them one-to-one.
 
 ---
 
-## Section 1 – Case Summary
+## 1. Scope and Assumptions
 
-| Field | Value |
-|---|---|
-| Incident ID | |
-| Affected Host(s) | |
-| Date/Time of First Event (UTC) | |
-| Date/Time of Detection (UTC) | |
-| Detection Gap | |
-| Incident Type | Ransomware / Data Theft / Malware / Other |
-| Overall Severity | Critical / High / Medium / Low |
+**Systems examined:**
+- [ ] employee-ws (10.10.30.10)
+- [ ] file-server (10.10.30.20)
+- [ ] db-server (10.10.30.30)
+- [ ] web-banking (10.10.20.10)
+
+**Time window:** [start UTC] – [end UTC]
+
+**Assumptions and limitations:**
+[Document what you could NOT examine and why – missing logs, live system vs image, etc.]
+
+**Confidence in findings:** HIGH / MEDIUM / LOW — [justify]
 
 ---
 
-## Section 2 – Attack Timeline
+## 2. Artefacts Reviewed
 
-Reconstruct the sequence of events chronologically. Use the evidence files provided in `/opt/ngsoc-artifacts/forensic-bundle/`.
-
-| # | Time (UTC) | Event | Evidence Source | MITRE ATT&CK |
+| # | Artefact | Source | Hash (SHA256) | Integrity |
 |---|---|---|---|---|
-| 1 | | Initial phishing email delivered | wazuh-alerts-ex2.json | T1566.001 |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
-| 6 | | Ransomware deployed | | T1486 |
-
-**Detection gap** (time between first malicious event and SOC alert):
-[Calculate: first event time → SIEM alert time]
+| 1 | wazuh-alerts-ex2.json | /opt/ngsoc-artifacts/forensic-bundle/ | | PASS/FAIL |
+| 2 | endpoint-process-list.txt | /opt/ngsoc-artifacts/forensic-bundle/ | | PASS/FAIL |
+| 3 | netstat-employee-ws.txt | /opt/ngsoc-artifacts/forensic-bundle/ | | PASS/FAIL |
+| 4 | web-banking-access.log | /opt/ngsoc-artifacts/forensic-bundle/ | | PASS/FAIL |
+| 5 | file-metadata.txt | /opt/ngsoc-artifacts/forensic-bundle/ | | PASS/FAIL |
+| 6 | timeline-clues.txt | /opt/ngsoc-artifacts/forensic-bundle/ | | PASS/FAIL |
 
 ---
 
-## Section 3 – Evidence Analysis
+## 3. Timeline (High Level)
 
-### 3.1 Indicators of Compromise
-
-| IoC Type | Value | Confidence | Source | Recommended Action |
-|---|---|---|---|---|
-| IP | | High / Med / Low | | Block / Monitor / Hunt |
-| Domain | | | | |
-| File hash (MD5) | | | | |
-| File hash (SHA256) | | | | |
-| Process name | | | | |
-| File path | | | | |
-
-### 3.2 Key Evidence Items
-
-**Wazuh Alerts** (from `wazuh-alerts-ex2.json`):
-- Most significant alert: [rule ID, description, time]
-- Number of alerts: [count]
-- Affected hosts: [list]
-
-**Process List** (from `endpoint-process-list.txt`):
-- Suspicious process(es): [name, PID, parent PID]
-- Persistence mechanism: [cron entry or other]
-
-**Network Connections** (from `netstat-employee-ws.txt`):
-- C2 connection: [src → dst, protocol]
-- Lateral movement evidence: [connection to other hosts]
-
-**Web Application Log** (from `web-banking-access.log`):
-- SQLi attempt: [timestamp, IP, payload]
-- Unauthorised export: [timestamp, query parameter]
-
-**File System** (from `file-metadata.txt`):
-- Files encrypted: [count] in [time window]
-- Ransom note: [path, timestamp]
-
----
-
-## Section 4 – Root Cause Analysis
-
-**Primary attack vector:**
-[How did the attacker gain initial access?]
-
-**Enabling vulnerabilities:**
-1. [Technical vulnerability – e.g. SQLi in login.php]
-2. [Process gap – e.g. email macro not blocked]
-3. [Configuration weakness – e.g. credential reuse]
-
-**Why was detection delayed?**
-[Explain the 12-hour detection gap using evidence]
-
----
-
-## Section 5 – Impact Assessment
-
-| Category | Assessment |
-|---|---|
-| Data confidentiality | [Was data accessed/exfiltrated? What type?] |
-| Data integrity | [Were files modified/encrypted?] |
-| Availability | [Which services were disrupted?] |
-| Regulatory exposure | [GDPR? NIS2 notification required?] |
-| Estimated business impact | [Qualitative: Low / Medium / High / Critical] |
-
----
-
-## Section 6 – Recommendations
-
-List in priority order (P1 = immediate, P3 = medium-term):
-
-| Priority | Action | Owner | Deadline |
+| Time (UTC) | Event | Evidence Source | ATT&CK |
 |---|---|---|---|
-| P1 | Isolate affected hosts from network | SOC | Immediate |
-| P1 | | | |
-| P2 | | | |
-| P3 | | | |
+| | | | |
+| | | | |
+| | | | |
+
+[Fill in from timeline-clues.txt and corroborating artefacts]
 
 ---
 
-## Section 7 – Analyst Statement
+## 4. Findings
 
-I confirm that:
-- [ ] All evidence items were handled in accordance with chain-of-custody procedures
-- [ ] No evidence was modified during analysis
-- [ ] Hashes were verified before and after acquisition where applicable
-- [ ] This report represents my honest professional assessment
+### F-01 – [Title]
+**Severity:** CRITICAL / HIGH / MEDIUM / LOW
+**Host:** [hostname]
+**Description:** [What happened, in plain language]
+**Evidence:** [Which artefact(s) confirm this finding]
+**ATT&CK Technique:** [Txxxx – Name]
 
-**Analyst signature:** ________________ **Date:** ________________
+### F-02 – [Title]
+[Repeat structure for each finding]
+
+> Cover, where the evidence supports it: probable initial access, persistence,
+> lateral movement, and exfiltration/encryption indicators.
 
 ---
-*Template: NG-SOC LM8 Sub Case 1a | Assessed Activity 2.0.3*
-*All evidence files in this exercise are synthetic training artefacts.*
+
+## 5. Indicators of Compromise
+
+| Type | Value | Source | Confidence |
+|---|---|---|---|
+| IP | | | HIGH/MED/LOW |
+| Domain | | | |
+| MD5 | | | |
+| SHA256 | | | |
+| Filename | | | |
+| File path | | | |
+
+[Cross-check against MISP (Exercise 3) for known IoCs]
+
+---
+
+## 6. Impact Assessment
+
+**Confidentiality:** [Was data exfiltrated or accessed without authorisation?]
+**Integrity:** [Were files modified, encrypted or deleted?]
+**Availability:** [Were systems or services disrupted?]
+
+**Estimated affected users / records:** [number or "unknown"]
+**Regulatory implications:** [GDPR, NIS2, sector-specific — any notification obligation?]
+
+---
+
+## 7. Recommendations
+
+| Priority | Recommendation | Owner | Target Date |
+|---|---|---|---|
+| IMMEDIATE | | IT Security | |
+| SHORT-TERM | | | |
+| LONG-TERM | | | |
+
+**Immediate containment actions taken during this investigation:**
+1.
+2.
+3.
+
+---
+
+*Assessment criteria (D5.8 §2.0.3): evidence-based reasoning traceable to the
+artefacts provided; internally consistent timeline; key indicators and affected
+scope identified; recommendations actionable and prioritised; professional
+structure and clarity (UK English).*

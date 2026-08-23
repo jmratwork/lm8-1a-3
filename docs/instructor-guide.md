@@ -27,8 +27,9 @@ These rules are **mandatory**. Violation will cause the platform to reject the r
             vars/main.yml              ← Optional
     group_vars/                        ← Optional
     host_vars/                         ← Optional
-/trainings/                            ← Training definition files (JSON format)
-/artifacts/                            ← Synthetic evidence bundles
+/V4_ngsoc-lm8-subcase1a-training.json  ← REP training definition (47 levels)
+/tools/validate-training.py            ← Validates flags against deployed artefacts
+/artifacts/                            ← Mirror of provisioning/roles/artifacts/files/
 /docs/                                 ← This guide and student handouts
 ```
 
@@ -321,11 +322,13 @@ findings. Start time logged. Attack surface: web-banking.example.internal (10.10
 
 **Instructor action**: Release artefacts from `/artifacts/phishing/` via REP file share at the start of Exercise 1.
 
-Contents released:
+Contents released (all four are deployed to `/opt/ngsoc-artifacts/phishing/`):
 - `phishing-email.eml` — email with malicious attachment lure
 - `phishing-sms.txt` — SMS message with shortened URL
 - `phishing-call-script.txt` — voice phishing script (read by instructor or played)
-- `suspicious-attachment.zip` (password: `infected`, contains a text file with simulated dropper IOCs)
+- `suspicious-attachment.txt` — static analysis summary of the lure attachment
+  (metadata and simulated dropper IOCs only; **no executable code and no
+  archive** — there is deliberately nothing to detonate)
 
 **Assessed outputs** (collect via REP submission):
 - Phishing triage note (lure theme, intent, risk)
@@ -344,11 +347,13 @@ Contents released:
 
 **Instructor action**: Assign roles in REP before session; enable coordination room, task board.
 
-Roles to assign:
+Roles to assign (D5.8 §2.0.2 and §2.5 require the communications strand — it is
+exercised by inject 6 of the Exercise 5 brief, where a journalist calls):
 - SOC Analyst — `employee-ws` / SIEM triage
 - Incident Responder — `analyst-host` / containment
 - CTI Analyst — `cti` / Black Falcon brief
 - IT Operations — `db-server` / `file-server` recovery coordination
+- **Communications / PR** — internal and external statements, holding line to media
 - IR Coordinator — overall tracking + SITREP
 
 **Assessed outputs** (exported from REP task board):
@@ -369,14 +374,19 @@ Roles to assign:
 
 **Instructor action**: Release artefact bundle from `/artifacts/forensic-bundle/` via REP at the start of Exercise 2. Set a 30-minute analysis window.
 
-Bundle contents:
-- `wazuh-alerts-ex2.json` — SIEM alert extract
+Bundle contents (exactly the six files deployed to
+`/opt/ngsoc-artifacts/forensic-bundle/`):
+- `wazuh-alerts-ex2.json` — SIEM alert extract (11 alerts: C2, Trojan, DNS, lateral movement, brute force, ransomware)
 - `endpoint-process-list.txt` — ps aux output from employee-ws (synthetic)
-- `netstat-employee-ws.txt` — netstat -an output (synthetic)
+- `netstat-employee-ws.txt` — netstat -an output (synthetic) — this is the bundle's network trace
 - `web-banking-access.log` — Apache access log with SQLi evidence
-- `file-metadata.txt` — find output with .locked file timestamps
-- `network-capture.pcap` — 15-packet synthetic pcap (DNS tunnelling simulation)
+- `file-metadata.txt` — file listing, dropper hashes and .locked timestamps
 - `timeline-clues.txt` — key timestamps and events summary
+
+> A packet capture (`network-capture.pcap`, DNS-tunnelling simulation) would
+> strengthen the "basic network traces" element of D5.8 §2.0.3, but **is not
+> currently generated or deployed**. Until it is, `netstat-employee-ws.txt`
+> carries the network-evidence strand. Do not reference a pcap in session.
 
 **Instructor action (post-analysis)**: Compile participant inputs into the express forensic report template (`/docs/student-handouts/express-forensic-report-template.md`) and share via REP.
 
@@ -392,18 +402,28 @@ Bundle contents:
 
 ## 6. Grading Summary
 
-| Activity / Exercise | Weight | Assessed By |
-|---|---|---|
-| Ex 1 — SOC Triage report | 15% | Checklist §4.1 |
-| Ex 2 — IR report | 20% | Checklist §4.2 |
-| Ex 3 — CTI Brief | 15% | Checklist §4.3 |
-| Ex 4 — Pentest Report | 20% | Checklist §4.4 |
-| Ex 5 — After-Action Report | 15% | Checklist §4.5 |
-| Activity 2.0.1 — Phishing triage note | 5% | Checklist §5.1 |
-| Activity 2.0.2 — Collaborative artefacts | 5% | Checklist §5.2 |
-| Activity 2.0.3 — Forensic report inputs | 5% | Checklist §5.3 |
+> **`README.md` → Grading is the single source of truth for weighting.** The
+> table below restates it; if the two ever differ, README wins.
 
-**Pass threshold**: 60% overall; no single exercise below 40%.
+| Component | Weight | Assessed by |
+|---|---|---|
+| **Exercises 1–5** | **60 %** | REP scoring: 28 console flags + 8 assessment levels |
+| — Ex 1 SOC Triage | 11 % | Checklist §4.1 + levels 2–8 |
+| — Ex 2 IR report | 14 % | Checklist §4.2 + levels 13–19 |
+| — Ex 3 CTI Brief | 11 % | Checklist §4.3 + levels 25–29 |
+| — Ex 4 Pentest Report | 13 % | Checklist §4.4 + levels 30–33 |
+| — Ex 5 After-Action Report | 11 % | Checklist §4.5 + levels 34–37 |
+| **Practical activities** | **40 %** | Instructor-graded submissions |
+| — Activity 2.0.1 Phishing triage note | 15 % | Checklist §5.1 |
+| — Activity 2.0.2 Collaborative artefacts | 15 % | Checklist §5.2 |
+| — Activity 2.0.3 Forensic report inputs | 10 % | Checklist §5.3 |
+
+**Pass threshold**: 60 % overall; no single exercise below 40 %.
+
+Rationale for the 60/40 split: D5.8 §2.0.4 weights technical correctness,
+documentation quality, and communication/coordination under pressure equally.
+The latter two are demonstrated almost entirely through the three practical
+activities.
 
 ---
 

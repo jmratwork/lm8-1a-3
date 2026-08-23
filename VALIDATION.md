@@ -83,19 +83,45 @@ This table maps every referenced resource to its implementation status in the sa
 - Domain `blackfalcon-sim.internal`: .internal TLD, non-routable
 - MD5 `aabbccdd11223344aabbccdd11223344`: patterned hex, not a real malware hash
 - SHA256 `deadbeef00112233...`: hex pattern, not a real hash
-- BTC wallet `1A2B3C4D5E6F7G8H9I0J`: not a valid BTC address format
+- BTC wallet `1A2B3C4D5E6F7G8H9INEX-SIMULATED`: not a valid BTC address format
+  (as deployed by the `file-server` role; the flag for training level 28 is this
+  exact string)
 
 ---
 
 ## Training JSON Files (CyberRangeCZ REP)
 
-| File | Exercise | Level Types | MITRE Techniques |
-|---|---|---|---|
-| trainings/exercise-1-soc-triage.json | SOC Analyst (Ex 1) | InfoLevel, 3× TrainingLevel, AssessmentLevel | T1071.001, T1053.005 |
-| trainings/exercise-2-containment.json | Incident Responder (Ex 2) | InfoLevel, 3× TrainingLevel, AssessmentLevel | T1005, T1041, T1053.005, T1190, T1078, T1486 |
-| trainings/exercise-3-cti-briefing.json | CTI Analyst (Ex 3) | InfoLevel, 3× TrainingLevel, AssessmentLevel | T1566.001, T1071.001, T1486, T1005, T1190, T1078 |
-| trainings/exercise-4-pentest.json | Pen Tester (Ex 4) | InfoLevel, 4× TrainingLevel, AssessmentLevel | T1190, T1078, T1083, T1005 |
-| trainings/exercise-5-tabletop.json | IR Coordinator (Ex 5) | InfoLevel, 4× TrainingLevel, AssessmentLevel | T1486, T1021.002, T1041, T1566.001, T1053.005 |
+A **single consolidated definition** is imported into REP:
+`V4_ngsoc-lm8-subcase1a-training.json` (repository root, **47 levels** — 28
+hands-on console tasks, 8 assessments, plus INFO/ACCESS levels).
+
+The five earlier per-exercise files under `trainings/` were removed — they used a
+different, unscored schema (`type` / `answer`, no `max_score`) and had been
+superseded. They remain in git history.
+
+| Block | Level types | MITRE techniques |
+|---|---|---|
+| Overview + range access | INFO, ACCESS | — |
+| Exercise 1 — SOC Analyst | INFO, 5× TRAINING, ASSESSMENT | T1071, T1571, T1543, T1053 |
+| Activity 2.0.1 — Multi-channel phishing | INFO, 5× TRAINING, ASSESSMENT | T1566, T1566.004, T1111 |
+| Activity 2.0.2 — Collaborative response chain | INFO, TRAINING, ASSESSMENT | — (coordination) |
+| Exercise 2 — Incident Responder | INFO, 5× TRAINING, ASSESSMENT | T1083, T1566, T1486, T1071, T1070; +GDPR Art.33 |
+| Activity 2.0.3 — Express forensic report | INFO, 3× TRAINING, ASSESSMENT | T1021, T1110, T1071 |
+| Exercise 3 — CTI Analyst | INFO, 3× TRAINING, ASSESSMENT | — (reasoning-based) |
+| Exercise 4 — Penetration Tester | INFO, 4× TRAINING, ASSESSMENT | T1046, T1190, T1110, T1083 |
+| Exercise 5 — IR Coordinator | INFO, 2× TRAINING, ASSESSMENT | T1486; +NIS2 24h, evidence preservation |
+| Wrap-up & debrief | INFO | — |
+
+**Validation:** `python tools/validate-training.py V4_ngsoc-lm8-subcase1a-training.json`
+checks every flag against the artefacts the sandbox actually deploys. Last run:
+**28 ok, 0 warn, 0 fail**.
+
+### Pre-import check (cannot be validated offline)
+
+`mitre_techniques[].technique_key` uses the `TA0011.T1071` (tactic.technique)
+form. The rest of the project documents sub-techniques (T1071.001, T1053.005,
+T1021.002). **Confirm the accepted form against the target REP instance before
+import** and unify if the platform expects sub-techniques.
 
 ---
 
