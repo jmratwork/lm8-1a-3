@@ -1,4 +1,10 @@
 ---
+# Add the required logging role
+- name: sandbox-logging
+  src: https://github.com/cyberrangecz/ansible-role-sandbox-logging.git
+  scm: git
+  version: v1.0.0
+
 # Ansible Galaxy role dependencies for NG-SOC LM8 provisioning.
 # Install with: ansible-galaxy install -r requirements.yml
 # (Run this from the provisioning/ directory before deploying.)
