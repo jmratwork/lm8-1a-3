@@ -225,6 +225,14 @@ Techniques tagged on the training levels of `V4_ngsoc-lm8-subcase1a-training.jso
 > training levels are written for the in-browser console (right-click a host →
 > Open console). `sudo` works without a password.
 
+**Learner entry point.** The *Access the Range* level (level 2) tells learners to
+open **`siem` (10.10.40.10)** — the host Exercise 1 starts on — and log in as
+`analyst` / `ngsoc-analyst`, then submit the passkey `ngsoc-start`. From level 3
+onwards every console level names its own host and the exact command to run — in
+practice `siem`, `analyst-host` (10.10.40.20), `cti` (10.10.40.30) and `kali`
+(10.10.50.10). The corporate LAN (10.10.30.0/24) is **not** user-accessible; its
+hosts are worked only through the SIEM and forensic tooling.
+
 ### Instructor Checklist
 See [docs/instructor-guide.md](docs/instructor-guide.md) → Section 3 for full REP session preparation checklist.
 
